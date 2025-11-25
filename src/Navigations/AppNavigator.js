@@ -2,10 +2,8 @@
 // import { NavigationContainer } from '@react-navigation/native';
 // import BottomTabNavigator from './BottomTabsNavigator';
 
-
 // export default function AppNavigator() {
 //   return (
-
 
 //     <NavigationContainer>
 //       <BottomTabNavigator/>
@@ -20,31 +18,25 @@ import AuthNavigator from './AuthNavigation';
 import BottomTabNavigator from './BottomTabsNavigator';
 import { Splash } from '../Screens/splash';
 import auth from '@react-native-firebase/auth';
+import { EditData } from '../Screens/editData';
 
 const RootStack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);//false
+  const [isLoggedIn, setIsLoggedIn] = useState(false); //false
   useEffect(() => {
     const unsubsCribe = auth().onAuthStateChanged(user => {
       if (user) {
-        setIsLoggedIn(true)
-
+        setIsLoggedIn(true);
       } else {
-        setIsLoggedIn(false)//false
+        setIsLoggedIn(false); //false
       }
-      setIsLoading(false)
-    })
+      setIsLoading(false);
+    });
     return () => unsubsCribe();
-  }, [])
-console.log("is loggin :",isLoggedIn)
-
-  // useEffect(() => {
-  //   setTimeout(() => {
-  //     setIsLoading(false);
-  //   }, 2000);
-  // }, []);
+  }, []);
+  console.log('is loggin :', isLoggedIn);
 
   return (
     <NavigationContainer>
@@ -52,7 +44,10 @@ console.log("is loggin :",isLoggedIn)
         {isLoading ? (
           <RootStack.Screen name="Splash" component={Splash} />
         ) : isLoggedIn ? (
-          <RootStack.Screen name="MainApp" component={BottomTabNavigator} />
+          <>
+            <RootStack.Screen name="MainApp" component={BottomTabNavigator} />
+            <RootStack.Screen name="EditData" component={EditData} />
+          </>
         ) : (
           <RootStack.Screen name="Auth" component={AuthNavigator} />
         )}

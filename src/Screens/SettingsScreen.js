@@ -21,6 +21,9 @@ import { useToast } from 'react-native-toast-notifications';
 import { AddData } from '../firbase/dataBase/dataBase';
 import { getAuth } from '@react-native-firebase/auth';
 import { useNavigation } from '@react-navigation/native';
+import DatePicker from 'react-native-date-picker';
+import { Button } from 'react-native';
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 
 const data = {
   categories: [
@@ -141,6 +144,9 @@ const data = {
 };
 
 export const SettingsScreen = () => {
+  const [date, setDate] = useState(new Date());
+  const [open, setOpen] = useState(false);
+  //-------------------------------
   const toast = useToast();
   const navigation = useNavigation();
   const [category, setCategory] = useState('');
@@ -148,6 +154,23 @@ export const SettingsScreen = () => {
   const [quality, setQuality] = useState('');
   const [unit, setUnit] = useState('');
   const [price, setPrice] = useState('');
+
+  //-------------price error---------------------
+  const [priceError, setPriceError] = useState('');
+  const validateNumericInput = text => {
+    const numericRegex = /^[0-9]*$/;
+
+    if (text === '') {
+      return { isValid: true, filteredText: '' };
+    }
+
+    if (!numericRegex.test(text)) {
+      return { isValid: false, filteredText: text.replace(/[^0-9]/g, '') };
+    }
+
+    return { isValid: true, filteredText: text };
+  };
+  //-------------------------------------------------
 
   const selectedCategory = data.categories.find(c => c.id === category);
   const selectedItem = selectedCategory?.items.find(i => i.id === item);
@@ -157,70 +180,33 @@ export const SettingsScreen = () => {
   console.log('selectedCategory', selectedCategory);
   console.log('unit', unit);
   console.log('price ', price);
-  //---------------------------------------------------
 
-  // State ko array/object bana do
+  //----------------unit price and error-----------------------------------
+
   const [unitPrices, setUnitPrices] = useState({});
+  const [unitPriceErrors, setUnitPriceErrors] = useState({});
 
-  // jab bhi koi unit ka price change ho
   const handleUnitPriceChange = (unitId, price) => {
+    const { isValid, filteredText } = validateNumericInput(price);
     setUnitPrices(prev => ({
       ...prev,
-      [unitId]: price,
+      [unitId]: filteredText,
+    }));
+    setUnitPriceErrors(prev => ({
+      ...prev,
+      [unitId]: isValid ? '' : 'Only numbers are allowed.',
     }));
   };
 
+  //---------------------single price validate-----------------------------------
+  const handleSinglePriceChange = value => {
+    const { isValid, filteredText } = validateNumericInput(value);
+
+    setPrice(filteredText);
+    setPriceError(isValid ? '' : 'Only numbers are allowed.');
+  };
+
   //----------------------------------------------------
-
-  // const handleSubmit = async () => {
-  //     const auth = getAuth();
-  //     const userUid = auth.currentUser?.uid;  // safe check lagao
-
-  //     if (!userUid) {
-  //         toast.show("User not logged in!", {
-  //             type: "danger",
-  //             placement: "top",
-  //             duration: 4000,
-  //             offset: 30,
-  //             animationType: "slide-in",
-  //             style: { backgroundColor: "red" },
-  //             textStyle: { color: "white" }
-  //         });
-  //         return;
-  //     }
-
-  //     const payload = {
-  //         category: selectedCategory?.name,
-  //         item: selectedItem?.name,
-  //         quality: selectedQuality?.name || null,
-  //         unit: selectedItem?.qualities
-  //             ? selectedQuality?.units.find((u) => u.id === unit)?.name
-  //             : selectedItem?.units.find((u) => u.id === unit)?.name,
-  //         price: price,
-  //     };
-
-  //     console.log("🔥 Payload:", payload);
-
-  //     const result = await AddData(userUid, payload);
-
-  //     toast.show(result.message, {
-  //         type: "success",
-  //         placement: "top",
-  //         duration: 4000,
-  //         offset: 30,
-  //         animationType: "slide-in",
-  //         style: { backgroundColor: "green" },
-  //         textStyle: { color: "white" }
-  //     });
-
-  //     if (result.success) {
-  //         setCategory(null);
-  //         setItem(null);
-  //         setQuality(null);
-  //         setUnit(null);
-  //         setPrice(null);
-  //     }
-  // };
 
   const handleSubmit = async () => {
     const auth = getAuth();
@@ -236,6 +222,7 @@ export const SettingsScreen = () => {
     if (selectedItem?.name === 'Gold' || selectedItem?.name === 'Silver') {
       // Multiple units ke sath payload
       payload = {
+        date:date,
         category: selectedCategory?.name,
         item: selectedItem?.name,
         quality: selectedQuality?.name || null,
@@ -250,6 +237,8 @@ export const SettingsScreen = () => {
     } else {
       // Normal payload
       payload = {
+        date:date,
+
         category: selectedCategory?.name,
         item: selectedItem?.name,
         quality: selectedQuality?.name || null,
@@ -287,7 +276,41 @@ export const SettingsScreen = () => {
       />
       <ScrollView style={styles.ScrollContainer}>
         <View style={styles.container}>
-          {/* Category */}
+          {/* //---------------date picker-------------- */}
+          <View style={{ padding: 20 }}>
+            
+            <DatePicker
+              modal
+              mode="date"
+              open={open}
+              date={date}
+              onConfirm={selectedDate => {
+                setOpen(false);
+                setDate(selectedDate);
+              }}
+              onCancel={() => setOpen(false)}
+            />
+            <View style={{marginTop:10}}>
+              <View style={styles.datePicker}>
+                <Text
+                  style={{
+                    fontSize: responsiveFontSize(2.3),
+                    color: '#000',
+                    textAlign: 'center',
+
+                  }}
+                >
+                   {date.toLocaleDateString("en-GB")}
+                </Text>
+                <TouchableOpacity onPress={() => setOpen(true)}>
+                  <MaterialIcons name='calendar-month' size={24} color={"#000"} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          {/* ----Category -------*/}
+
           <Text style={styles.label}>Select Category</Text>
           <Dropdown
             style={styles.dropdown}
@@ -298,10 +321,10 @@ export const SettingsScreen = () => {
             labelField="label"
             valueField="value"
             placeholder="Select Category"
-            placeholderStyle={styles.placeholderStyle} // ✅ placeholder color
-            selectedTextStyle={styles.selectedTextStyle} // ✅ selected item color
+            placeholderStyle={styles.placeholderStyle}
+            selectedTextStyle={styles.selectedTextStyle}
             itemTextStyle={styles.itemTextStyle}
-            containerStyle={styles.dropdownContainer} // ✅ dropdown ka background
+            containerStyle={styles.dropdownContainer}
             itemContainerStyle={styles.itemContainerStyle}
             value={category}
             onChange={val => {
@@ -327,10 +350,10 @@ export const SettingsScreen = () => {
                 labelField="label"
                 valueField="value"
                 placeholder="Select Item"
-                placeholderStyle={styles.placeholderStyle} // ✅ placeholder color
-                selectedTextStyle={styles.selectedTextStyle} // ✅ selected item color
+                placeholderStyle={styles.placeholderStyle}
+                selectedTextStyle={styles.selectedTextStyle}
                 itemTextStyle={styles.itemTextStyle}
-                containerStyle={styles.dropdownContainer} // ✅ dropdown ka background
+                containerStyle={styles.dropdownContainer}
                 itemContainerStyle={styles.itemContainerStyle}
                 value={item}
                 onChange={val => {
@@ -348,10 +371,10 @@ export const SettingsScreen = () => {
               <Text style={styles.label}>Select Quality</Text>
               <Dropdown
                 style={styles.dropdown}
-                placeholderStyle={styles.placeholderStyle} // ✅ placeholder color
-                selectedTextStyle={styles.selectedTextStyle} // ✅ selected item color
+                placeholderStyle={styles.placeholderStyle}
+                selectedTextStyle={styles.selectedTextStyle}
                 itemTextStyle={styles.itemTextStyle}
-                containerStyle={styles.dropdownContainer} // ✅ dropdown ka background
+                containerStyle={styles.dropdownContainer}
                 itemContainerStyle={styles.itemContainerStyle}
                 data={selectedItem.qualities.map(q => ({
                   label: q.name,
@@ -369,111 +392,89 @@ export const SettingsScreen = () => {
             </View>
           )}
 
-          {/* Unit */}
-          {/* {((selectedItem && !selectedItem.qualities) || quality) && (
-                        <>
-                            <Text style={styles.label}>Select Unit</Text>
-                            <Dropdown
-                                style={styles.dropdown}
-                                data={
-                                    selectedItem?.qualities
-                                        ? selectedQuality?.units.map((u) => ({ label: u.name, value: u.id })) || []
-                                        : selectedItem?.units.map((u) => ({ label: u.name, value: u.id })) || []
-                                }
-                                labelField="label"
-                                valueField="value"
-                                placeholder="Select Unit"
-                                value={unit}
-                                onChange={(val) => setUnit(val.value)}
-                            />
-                        </>
-                    )} */}
-
-          {/* Price */}
-          {/* {unit && (
-                        <>
-                            <Text style={styles.label}>Price</Text>
-                            <TextInput
-                                placeholder="Add Price"
-                                style={styles.dropdown}
-                                onChangeText={price => setPrice(price)}
-                                value={price}
-                                keyboardType="numeric"
-                            />
-                        </>
-                    )} */}
           {/* Unit & Price Section */}
           {((selectedItem && !selectedItem.qualities) || quality) && (
             <View>
-              {
-                // 👇 check karo gold ya silver
-                selectedItem?.name === 'Gold' ||
-                selectedItem?.name === 'Silver' ? (
-                  <View>
-                    <Text style={styles.label}>Units & Prices</Text>
-                    {(selectedItem?.qualities
-                      ? selectedQuality?.units
-                      : selectedItem?.units
-                    )?.map(u => (
-                      <View key={u.id} style={{ marginBottom: 10 }}>
-                        <Text style={styles.label}>{u.name}</Text>
-                        <TextInput
-                          placeholder={`Price for ${u.name}`}
-                          placeholderTextColor={'#b3b2b2ff'}
-                          style={styles.dropdown}
-                          onChangeText={value =>
-                            handleUnitPriceChange(u.id, value)
-                          }
-                          value={unitPrices[u.id] || ''}
-                          keyboardType="numeric"
-                        />
-                      </View>
-                    ))}
-                  </View>
-                ) : (
-                  <View>
-                    <Text style={styles.label}>Select Unit</Text>
-                    <Dropdown
-                      placeholderStyle={styles.placeholderStyle} // ✅ placeholder color
-                      selectedTextStyle={styles.selectedTextStyle} // ✅ selected item color
-                      itemTextStyle={styles.itemTextStyle}
-                      containerStyle={styles.dropdownContainer} // ✅ dropdown ka background
-                      itemContainerStyle={styles.itemContainerStyle}
-                      style={styles.dropdown}
-                      data={
-                        selectedItem?.qualities
-                          ? selectedQuality?.units.map(u => ({
-                              label: u.name,
-                              value: u.id,
-                            }))
-                          : selectedItem?.units.map(u => ({
-                              label: u.name,
-                              value: u.id,
-                            }))
-                      }
-                      labelField="label"
-                      valueField="value"
-                      placeholder="Select Unit"
-                      value={unit}
-                      onChange={val => setUnit(val.value)}
-                    />
+              {selectedItem?.name === 'Gold' ||
+              selectedItem?.name === 'Silver' ? (
+                <View>
+                  <Text style={styles.label}>Units & Prices</Text>
+                  {(selectedItem?.qualities
+                    ? selectedQuality?.units
+                    : selectedItem?.units
+                  )?.map(u => (
+                    <View key={u.id} style={{ marginBottom: 10 }}>
+                      <Text style={styles.label}>{u.name}</Text>
+                      <TextInput
+                        placeholder={`Price for ${u.name}`}
+                        placeholderTextColor={'#b3b2b2ff'}
+                        style={[
+                          styles.dropdown,
+                          unitPriceErrors[u.id] && styles.inputError,
+                        ]}
+                        onChangeText={value =>
+                          handleUnitPriceChange(u.id, value)
+                        }
+                        value={unitPrices[u.id] || ''}
+                        keyboardType="numeric"
+                      />
+                      {unitPriceErrors[u.id] && (
+                        <Text style={styles.errorText}>
+                          {unitPriceErrors[u.id]}
+                        </Text>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <View>
+                  <Text style={styles.label}>Select Unit</Text>
+                  <Dropdown
+                    placeholderStyle={styles.placeholderStyle}
+                    selectedTextStyle={styles.selectedTextStyle}
+                    itemTextStyle={styles.itemTextStyle}
+                    containerStyle={styles.dropdownContainer}
+                    itemContainerStyle={styles.itemContainerStyle}
+                    style={styles.dropdown}
+                    data={
+                      selectedItem?.qualities
+                        ? selectedQuality?.units.map(u => ({
+                            label: u.name,
+                            value: u.id,
+                          }))
+                        : selectedItem?.units.map(u => ({
+                            label: u.name,
+                            value: u.id,
+                          }))
+                    }
+                    labelField="label"
+                    valueField="value"
+                    placeholder="Select Unit"
+                    value={unit}
+                    onChange={val => setUnit(val.value)}
+                  />
 
-                    {unit && (
-                      <View>
-                        <Text style={styles.label}>Price</Text>
-                        <TextInput
-                          placeholderTextColor={'#b3b2b2ff'}
-                          placeholder="Add Price"
-                          style={styles.dropdown}
-                          onChangeText={price => setPrice(price)}
-                          value={price}
-                          keyboardType="numeric"
-                        />
-                      </View>
-                    )}
-                  </View>
-                )
-              }
+                  {unit && (
+                    <View>
+                      <Text style={styles.label}>Price</Text>
+                      <TextInput
+                        placeholderTextColor={'#b3b2b2ff'}
+                        placeholder="Add Price"
+                        style={[
+                          styles.dropdown,
+                          priceError && styles.inputError,
+                        ]}
+                        onChangeText={handleSinglePriceChange}
+                        value={price}
+                        keyboardType="numeric"
+                      />
+                      {priceError ? (
+                        <Text style={styles.errorText}>{priceError}</Text>
+                      ) : null}
+                    </View>
+                  )}
+                </View>
+              )}
             </View>
           )}
 
@@ -504,7 +505,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'column',
-    width: '100%',
+    width: responsiveWidth(100),
   },
   dropdown: {
     width: responsiveWidth(90),
@@ -516,6 +517,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     backgroundColor: '#fff',
     color: '#000',
+    elevation: 3,
   },
   label: {
     fontSize: responsiveFontSize(2),
@@ -524,22 +526,22 @@ const styles = StyleSheet.create({
   },
   placeholderStyle: {
     fontSize: responsiveFontSize(2),
-    color: '#666', // ✅ placeholder text color
+    color: '#666',
   },
   selectedTextStyle: {
     fontSize: responsiveFontSize(2),
-    color: '#000', // ✅ selected text black
+    color: '#000',
   },
   itemTextStyle: {
     fontSize: responsiveFontSize(2),
-    color: '#000', // ✅ dropdown list items black
+    color: '#000',
   },
   dropdownContainer: {
-    backgroundColor: '#fff', // dropdown list ka background
+    backgroundColor: '#fff',
     borderRadius: 8,
   },
   itemContainerStyle: {
-    backgroundColor: '#fff', // har item ka background white
+    backgroundColor: '#fff',
   },
   btnView: {
     backgroundColor: '#d4af37',
@@ -547,7 +549,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 10,
-    width: 300,
+    width: responsiveWidth(90),
   },
   btnText: {
     fontSize: responsiveFontSize(2.7),
@@ -555,7 +557,44 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
   },
+
   ScrollContainer: {
     marginBottom: responsiveHeight(10),
+  },
+
+  inputError: {
+    borderColor: 'red',
+    borderWidth: 2,
+  },
+
+  errorText: {
+    color: 'red',
+    fontSize: responsiveFontSize(1.7),
+    marginTop: -15,
+    marginBottom: 5,
+    alignSelf: 'flex-start',
+    marginLeft: 10,
+  },
+   datePicker: {
+    width: responsiveWidth(90),
+    height: 50,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 20,
+    backgroundColor: '#fff',
+    color: '#000',
+    elevation: 3,
+    justifyContent:'space-between',
+    alignItems:'center',
+    flexDirection:'row'
+
+  },
+     dateText: {
+    fontSize: responsiveFontSize(2.5),
+    color: '#fff',
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
 });

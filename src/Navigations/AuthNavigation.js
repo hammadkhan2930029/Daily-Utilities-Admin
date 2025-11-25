@@ -9,6 +9,8 @@ export default function AuthNavigator() {
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
       <AuthStack.Screen name="login" component={Login} options={{ headerShown: false }} />
       <AuthStack.Screen name="register" component={Register} />
+
+
     </AuthStack.Navigator>
   );
 }

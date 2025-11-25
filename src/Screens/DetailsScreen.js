@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, Image } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+} from 'react-native';
 import { CustomHeader } from '../components/CustomHeader';
 import {
   responsiveFontSize,
@@ -13,6 +21,11 @@ import { getMarketData } from '../firbase/dataBase/getData';
 import LinearGradient from 'react-native-linear-gradient';
 import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
 // -----------------------------------------------------------------
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import DatePicker from 'react-native-date-picker';
+import firestore from '@react-native-firebase/firestore';
+import { date } from 'yup';
+
 const data = [
   {
     id: '1',
@@ -38,9 +51,14 @@ const data = [
 ];
 
 export const GoldPriceHistory = props => {
-  // const { name, category } = props.route.params
-  // const lowerCaseName = name ? name.toLowerCase() : '';
-  // const lowerCaseCategory = category ? category.toLowerCase() : '';
+  //-----------------------------------------
+  const [fromDate, setFromDate] = useState(new Date());
+  const [fromDateOpen, setfromDateOpen] = useState(false);
+  //---------------------------------------------------
+  const [toDate, setToDate] = useState(new Date());
+  const [toDateOpen, setToDateOpen] = useState(false);
+  //---------------------------------------------------
+
   const [isloading, setisLoading] = useState(true);
   const name = props?.route?.params?.name || null;
   const category = props?.route?.params?.category || null;
@@ -57,16 +75,15 @@ export const GoldPriceHistory = props => {
 
     if (result.success) {
       if (lowerCaseName && lowerCaseCategory) {
-        // agar props me data mila to filter karo
         const filtered = result.data.filter(
           i =>
             i.item?.toLowerCase() === lowerCaseName &&
             i.category?.toLowerCase() === lowerCaseCategory,
         );
+        // console.log('filter data ', filtered);
         setMarketData(filtered);
-        setisLoading(false)
+        setisLoading(false);
       } else {
-        // agar props empty hain to pura data dikhao
         setMarketData(result.data);
       }
     }
@@ -77,13 +94,42 @@ export const GoldPriceHistory = props => {
       fetchData();
     }, []),
   );
-  console.log('market data detail', marketData);
   //------------------------------------------------
   const formatNumber = num => {
     if (!num) return '';
-    return Number(num).toLocaleString('en-PK'); // ya 'en-IN' ya 'en-US'
+    return Number(num).toLocaleString('en-PK');
   };
-  //------------------------------------------------
+
+  //--------------------filter by date----------------------------
+  const searchBydate = () => {
+    setisLoading(true);
+
+    let startDate = new Date(fromDate.toISOString().split('T')[0]);
+    let endDate = new Date(toDate.toISOString().split('T')[0]);
+
+    const filteredByDate = marketData.filter(item => {
+      const itemDate = new Date(item.createdAt);
+      return itemDate >= startDate && itemDate <= endDate;
+    });
+
+    setMarketData(filteredByDate);
+    console.log('Filtered data by date:', filteredByDate);
+    setisLoading(false);
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      setFromDate(new Date());
+      setToDate(new Date());
+      fetchData();
+      return () => {
+        setFromDate(new Date());
+        setToDate(new Date());
+        fetchData();
+      };
+    }, []),
+  );
+  //--------------------------------------------------------------
 
   const renderItem = ({ item }) => (
     <View style={styles.card}>
@@ -182,6 +228,15 @@ export const GoldPriceHistory = props => {
           ))}
         </View>
       )}
+      <View>
+        <TouchableOpacity
+          style={styles.editBtn}
+          onPress={() => navigation.navigate('EditData', { id: item.id })}
+        >
+          <MaterialIcons name="edit" size={20} color="#fff" />
+          <Text style={styles.editBtnText}>Edit</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -195,27 +250,18 @@ export const GoldPriceHistory = props => {
           style={styles.bannerPlaceholder}
           shimmerColors={['#f0f0f0', '#e0e0e0', '#f0f0f0']}
         />
-        {/* <View style={[styles.viewTop, { borderBottomWidth: 0 }]}>
-          <ShimmerPlaceholder
-            LinearGradient={LinearGradient}
-            style={{ width: responsiveWidth(20), height: 20 }}
-            shimmerColors={['#f0f0f0', '#e0e0e0', '#f0f0f0']}
-          />
-          <ShimmerPlaceholder
-            LinearGradient={LinearGradient}
-            style={{ width: responsiveWidth(25), height: 16 }}
-            shimmerColors={['#f0f0f0', '#e0e0e0', '#f0f0f0']}
-          />
-        </View> */}
-        {/* Table/Unit placeholders */}
+
         {[1, 2, 3].map(i => (
           <View key={i} style={[styles.unit, { paddingHorizontal: 0 }]}>
             <ShimmerPlaceholder
               LinearGradient={LinearGradient}
-              style={{ width: responsiveWidth(80), height: 18, marginBottom:responsiveHeight(1)}}
+              style={{
+                width: responsiveWidth(80),
+                height: 18,
+                marginBottom: responsiveHeight(1),
+              }}
               shimmerColors={['#f0f0f0', '#e0e0e0', '#f0f0f0']}
             />
-           
           </View>
         ))}
       </View>
@@ -239,21 +285,91 @@ export const GoldPriceHistory = props => {
             <SkeletonCard />
           </View>
         ) : (
-          <>
+          <ScrollView>
+            <Text style={styles.title}>{`${name || ''} Price history`}</Text>
+            <View style={styles.filterCard}>
+              <View style={styles.datesection}>
+                <View>
+                  <DatePicker
+                    modal
+                    mode="date"
+                    open={fromDateOpen}
+                    date={fromDate}
+                    onConfirm={selectedDate => {
+                      setfromDateOpen(false);
+                      setFromDate(selectedDate);
+                    }}
+                    onCancel={() => setfromDateOpen(false)}
+                  />
+                  <View style={{ marginTop: 10 }}>
+                    <View style={styles.datePicker}>
+                      <Text
+                        style={{
+                          fontSize: responsiveFontSize(2.3),
+                          color: '#000',
+                          textAlign: 'center',
+                        }}
+                      >
+                        {fromDate.toLocaleDateString('en-GB')}
+                      </Text>
+                      <TouchableOpacity onPress={() => setfromDateOpen(true)}>
+                        <MaterialIcons
+                          name="calendar-month"
+                          size={24}
+                          color={'#daa520'}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+                <View>
+                  <DatePicker
+                    modal
+                    mode="date"
+                    open={toDateOpen}
+                    date={toDate}
+                    onConfirm={selectedDate => {
+                      setToDateOpen(false);
+                      setToDate(selectedDate);
+                    }}
+                    onCancel={() => setToDateOpen(false)}
+                  />
+                  <View style={{ marginTop: 10 }}>
+                    <View style={styles.datePicker}>
+                      <Text
+                        style={{
+                          fontSize: responsiveFontSize(2.3),
+                          color: '#000',
+                          textAlign: 'center',
+                        }}
+                      >
+                        {toDate.toLocaleDateString('en-GB')}
+                      </Text>
+                      <TouchableOpacity onPress={() => setToDateOpen(true)}>
+                        <MaterialIcons
+                          name="calendar-month"
+                          size={24}
+                          color={'#daa520'}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={styles.btnView}
+                onPress={() => searchBydate()}
+              >
+                <Text style={styles.btnText}>Search</Text>
+              </TouchableOpacity>
+            </View>
             <FlatList
               data={marketData}
               renderItem={renderItem}
               keyExtractor={item => item.id}
               contentContainerStyle={{ paddingBottom: 15 }}
-              ListHeaderComponent={
-                <>
-                  <Text style={styles.title}>{`${
-                    name || ''
-                  } Price history`}</Text>
-                </>
-              }
             />
-          </>
+          </ScrollView>
         )}
       </View>
     </View>
@@ -275,24 +391,15 @@ const styles = StyleSheet.create({
     elevation: 4,
     borderRadius: 12,
     marginBottom: responsiveHeight(1),
-    width:responsiveWidth(90),
-    alignSelf:'center'
-
+    width: responsiveWidth(90),
+    alignSelf: 'center',
   },
-  cardPlaceholder:{
-
+  cardPlaceholder: {
     borderRadius: 12,
     padding: 15,
     marginBottom: 12,
-    // borderWidth: 0.5,
-    // borderColor: '#daa520',
-    // shadowColor: '#000',
-    // shadowOffset: { width: 0, height: 3 },
-    // shadowOpacity: 0.2,
-    // shadowRadius: 4,
-    // elevation: 4,
   },
-   bannerPlaceholder: {
+  bannerPlaceholder: {
     width: responsiveWidth(80),
     height: 120,
 
@@ -310,7 +417,9 @@ const styles = StyleSheet.create({
     fontSize: responsiveFontSize(3),
     fontWeight: 'bold',
     color: '#b8860b',
-    marginBottom: 12,
+    marginBottom: 5,
+    marginTop: 10,
+
     textAlign: 'center',
   },
   card: {
@@ -374,5 +483,74 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#daa520',
     paddingBottom: 4,
+  },
+  editBtn: {
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
+    flexDirection: 'row',
+    backgroundColor: '#daa520',
+    padding: 5,
+    width: responsiveWidth(20),
+    borderRadius: 5,
+    alignSelf: 'flex-end',
+  },
+  editBtnText: {
+    color: '#fff',
+    fontSize: responsiveFontSize(2),
+  },
+
+  //--------------------------------
+  filterCard: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 10,
+    elevation: 5,
+    marginTop: responsiveHeight(2),
+    marginBottom: responsiveHeight(2),
+
+    borderWidth: 0.5,
+    borderColor: '#daa520',
+    // width:responsiveWidth(90)
+  },
+  datesection: {
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  datePicker: {
+    width: responsiveWidth(42),
+    height: 50,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 20,
+    backgroundColor: '#fff',
+    color: '#000',
+    elevation: 3,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  dateText: {
+    fontSize: responsiveFontSize(2.5),
+    color: '#fff',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  btnView: {
+    backgroundColor: '#d4af37',
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+    // width: responsiveWidth(90),
+    elevation: 5,
+  },
+  btnText: {
+    fontSize: responsiveFontSize(2.7),
+    color: '#fff',
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
 });
