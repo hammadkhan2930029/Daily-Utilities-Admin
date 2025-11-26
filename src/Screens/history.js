@@ -7,6 +7,7 @@ import {
   Image,
   TouchableOpacity,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { CustomHeader } from '../components/CustomHeader';
 import {
@@ -24,6 +25,8 @@ import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import DatePicker from 'react-native-date-picker';
 import { Dropdown } from 'react-native-element-dropdown';
+import firestore from '@react-native-firebase/firestore';
+
 //=========================================================
 const data = {
   categories: [
@@ -154,12 +157,20 @@ export const History = props => {
   // ----------------------------------------
   const [category, setCategory] = useState('');
   const [item, setItem] = useState('');
+
   const selectedCategory = data.categories.find(c => c.id === category);
   const selectedItem = selectedCategory?.items.find(i => i.id === item);
+
+  console.log('selectedCategory', selectedCategory);
+  console.log('selectedItem', selectedItem);
+  // console.log('category', category);
+  // console.log('item', item);
+
   //-----------------------------------------
   const navigation = useNavigation();
   const [isloading, setisLoading] = useState(true);
   const [marketData, setMarketData] = useState([]);
+  const [allMarketData, setAllMarketData] = useState([]);
 
   const name = props?.route?.params?.name || 'All Market';
 
@@ -174,6 +185,7 @@ export const History = props => {
         (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
       );
       setMarketData(sortedData);
+      setAllMarketData(sortedData);
     }
     // Loading end
     setisLoading(false);
@@ -184,14 +196,94 @@ export const History = props => {
       fetchData();
     }, []),
   );
+  //--------------------search data-----------------------------------------------
+  const searchData = async () => {
+    try {
+      setisLoading(true);
+      let query = firestore().collection('MarketData');
 
-  //------------------------------------------------
+      //-----date filter---------
+      if (fromDate && toDate) {
+       
+
+        let startDate = fromDate.toISOString().split('T')[0];
+        let endDate = toDate.toISOString().split('T')[0];
+        console.log('start :',startDate)
+        console.log('end :',endDate)
+
+        query = query
+          .where('createdAt', '>=', startDate)
+          .where('createdAt', '<=', endDate);
+      }
+      //------category filter------
+      if (selectedCategory) {
+        query = query.where('category', '==', selectedCategory.name);
+      }
+
+      //------item filter--------
+      if (selectedItem) {
+        query = query.where('item', '==', selectedItem.name);
+      }
+      //-------------------
+
+      const snapShot = await query.get();
+
+      if (!snapShot.empty) {
+        const result = snapShot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        console.log('result :', result);
+        setMarketData(result);
+      } else {
+        Alert.alert('Data not found');
+        console.log('No data found');
+        setisLoading(false);
+
+        setFromDate(null);
+        setToDate(null);
+        // setCategory(null);
+        // setItem(null);
+
+       
+        setMarketData(allMarketData);
+        setisLoading(false);
+      }
+
+      console.log('snapshot :', snapShot);
+
+      setisLoading(false);
+    } catch (error) {
+      console.log('try catch error :', error);
+    }
+  };
+
+  //-----------------------------------------------------------------------------------
+
+  // const filteredData = async () => {
+  //   try {
+  //     if (selectedCategory) {
+  //       const filterByCategory = marketData.filter(item => {
+  //         return item.category === selectedCategory.name;
+
+  //       });
+
+  //       setMarketData(filterByCategory)
+  //     }
+  //   } catch (error) {
+  //     console.log('try catch error :', error);
+  //   }
+  // };
+
+  //-----------------------------------------------------------------------------------
   const formatNumber = num => {
     if (!num) return '';
     return Number(num).toLocaleString('en-PK');
   };
   console.log('Market data', marketData);
-  //------------------------------------------------
+  console.log('All Market data', allMarketData);
+
+  //---------------------------------------------------------------------------------------
 
   const getItemImage = item => {
     const itemName = item.item?.toLowerCase();
@@ -261,7 +353,7 @@ export const History = props => {
     </View>
   );
 
-  // -------SkeletonCard (Ismein koi change nahi)-----------
+  // -------SkeletonCard (Ismein koi change nahi)----------------------------------------------
   const SkeletonCard = () => (
     <View style={styles.cardContainer}>
       <View style={styles.cardPlaceholder}>
@@ -292,12 +384,13 @@ export const History = props => {
   return (
     <View style={{ flex: 1 }}>
       <CustomHeader
-        title="History" // Title 'History' set kar diya hai
+        title="History"
         leftIcon="menu"
         rightIcon="search"
         onLeftPress={() => navigation.goBack()}
         onRightPress={() => console.log('Search pressed')}
       />
+
       <View style={styles.container}>
         {isloading ? (
           <View style={{ padding: 10 }}>
@@ -310,6 +403,7 @@ export const History = props => {
             <ScrollView>
               <View style={styles.filterCard}>
                 <View style={styles.datesection}>
+                  {/* -----------from date---------------- */}
                   <View>
                     <DatePicker
                       modal
@@ -343,6 +437,8 @@ export const History = props => {
                       </View>
                     </View>
                   </View>
+                  {/* -----------to date---------------- */}
+
                   <View>
                     <DatePicker
                       modal
@@ -377,7 +473,7 @@ export const History = props => {
                     </View>
                   </View>
                 </View>
-                {/* //------------------------------------------------------- */}
+                {/*------------------------------------------------------------------ */}
                 {/* ----Category -------*/}
 
                 <Text style={styles.label}>Select Category</Text>
@@ -398,9 +494,6 @@ export const History = props => {
                   value={category}
                   onChange={val => {
                     setCategory(val.value);
-                    // setItem(null);
-                    // setQuality(null);
-                    // setUnit(null);
                   }}
                 />
 
@@ -427,24 +520,22 @@ export const History = props => {
                       value={item}
                       onChange={val => {
                         setItem(val.value);
-                        // setQuality(null);
-                        // setUnit(null);
                       }}
                     />
                   </View>
                 )}
-                <TouchableOpacity style={styles.btnView}>
+                <TouchableOpacity
+                  style={styles.btnView}
+                  onPress={() => searchData()}
+                >
                   <Text style={styles.btnText}>Search</Text>
                 </TouchableOpacity>
               </View>
               <FlatList
                 data={marketData}
                 renderItem={renderItem}
-                keyExtractor={(item, index) => item.id || index.toString()} // Fallback keyExtractor
+                keyExtractor={(item, index) => item.id || index.toString()}
                 contentContainerStyle={{ paddingBottom: 15 }}
-                // ListHeaderComponent={
-                //   <Text style={styles.title_1}>{`${name} Price History`}</Text>
-                // }
                 ListEmptyComponent={
                   <Text style={styles.title}>No data available.</Text>
                 }
@@ -457,13 +548,11 @@ export const History = props => {
   );
 };
 
-// ... Styles (Styles mein koi zaroori change nahi hai)
-// Styles yahan wahi hain jo aapne diye hain.
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f2f2f2',
-    padding:10,
+    padding: 10,
     marginBottom: responsiveHeight(8),
   },
   cardContainer: {
@@ -493,13 +582,13 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     marginBottom: 15,
   },
-   title_1: {
+  title_1: {
     fontSize: responsiveFontSize(3),
     fontWeight: 'bold',
     color: '#b8860b',
     marginBottom: 12,
     textAlign: 'center',
-    marginTop:responsiveHeight(2)
+    marginTop: responsiveHeight(2),
   },
 
   title: {
@@ -587,10 +676,10 @@ const styles = StyleSheet.create({
   filterCard: {
     backgroundColor: '#fff',
     borderRadius: 10,
-    padding:10,
+    padding: 10,
     elevation: 5,
     marginTop: responsiveHeight(2),
-     borderWidth: 0.5,
+    borderWidth: 0.5,
     borderColor: '#daa520',
     // width:responsiveWidth(90)
   },
@@ -656,14 +745,14 @@ const styles = StyleSheet.create({
   itemContainerStyle: {
     backgroundColor: '#fff',
   },
-   btnView: {
+  btnView: {
     backgroundColor: '#d4af37',
     padding: 10,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 10,
     width: responsiveWidth(90),
-    elevation:5
+    elevation: 5,
   },
   btnText: {
     fontSize: responsiveFontSize(2.7),
