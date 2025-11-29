@@ -90,152 +90,345 @@ export default function HomeScreen({ route }) {
     }, []),
   );
   console.log('market data', marketData);
-  // ----------------------------------New Date---------------------
-  const currentdate = new Date().toISOString().split('T')[0];
-  const dates = marketData.map(i => i.createdAt);
-  const latestDate = dates.sort().reverse()[0]; // sab se last wali (yaani latest)
-
-  //----------------------------------------------------------------
+  // =========================new code with current,yesterday,last latest date===================================
   const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
 
-  console.log('Yesterday', yesterday.toISOString().split('T')[0]);
+  const currentDate = today.toISOString().split('T')[0];
 
-  // -------------------------GOLD-------------------------------------------
-  const allGoldItems = marketData.filter(
-    item =>
-      item.item === 'Gold' &&
-      (item.createdAt === latestDate || item.createdAt === yesterday),
-  );
+  const yesterdayObj = new Date(today);
+  yesterdayObj.setDate(today.getDate() - 1);
+  const yesterdayDate = yesterdayObj.toISOString().split('T')[0];
 
+  console.log('Aaj ki Date:', currentDate);
+  console.log('Kal ki Date:', yesterdayDate);
+
+  function getLatestDataByPriority(itemToFind) {
+    const itemData = marketData.filter(item => item.item === itemToFind);
+
+    let requiredData = [];
+
+    // ------------------------------------------------------------------
+    // A. Pehli Koshish: Aaj ki date dekho (currentDate)
+    // ------------------------------------------------------------------
+    requiredData = itemData.filter(item => item.date === currentDate);
+    if (requiredData.length > 0) {
+      
+      return requiredData;
+    }
+
+    // ------------------------------------------------------------------
+    // B. Doosri Koshish: Kal ki date dekho (yesterdayDate)
+    // ------------------------------------------------------------------
+    requiredData = itemData.filter(item => item.date === yesterdayDate);
+    if (requiredData.length > 0) {
+     
+      return requiredData;
+    }
+
+    // ------------------------------------------------------------------
+    // C. Teesri Koshish: Jo bhi sabse latest available date ho
+    // ------------------------------------------------------------------
+
+
+    const otherDates = itemData
+      .filter(item => item.date !== currentDate && item.date !== yesterdayDate)
+      .map(item => item.date)
+      .filter((value, index, self) => self.indexOf(value) === index); 
+
+    let latestAvailableDate = null;
+
+    if (otherDates.length > 0) {
+    
+      latestAvailableDate = otherDates.sort().pop();
+    }
+
+    if (latestAvailableDate) {
+      requiredData = itemData.filter(item => item.date === latestAvailableDate);
+      return requiredData;
+    }
+
+    return [];
+  }
+  // -------------------------------------------------------------------------------
+  const allGoldItems = getLatestDataByPriority('Gold');
+
+ 
   const goldItems = allGoldItems.filter(
     (value, index, self) =>
-      index === self.findIndex(t => t.createdAt === value.createdAt),
+      index === self.findIndex(t => t.date === value.date),
   );
-  // ------------------------------------------------------------------
+
+ 
   const goldData = marketData.filter(item => item.item === 'Gold');
   const goldInfo = goldData.map(item => ({
     name: item.item,
     category: item.category,
   }));
-  // ---------------------------crude oil-----------------------------------------
-  const allCrudeOil = marketData.filter(
-    item =>
-      item.item === 'Crude Oil' &&
-      (item.createdAt === latestDate || item.createdAt === yesterday),
-  );
+
+  //-----------------------------------------------------------------------------
+  const allCrudeOil = getLatestDataByPriority('Crude Oil');
 
   const CrudeOilData = marketData.filter(item => item.item === 'Crude Oil');
   const crudeOilInfo = CrudeOilData.map(item => ({
     name: item.item,
     category: item.category,
   }));
-  // ---------------------------Dimonds-----------------------------------------
-  const allDimonds = marketData.filter(
-    item =>
-      item.item === 'Diamond' &&
-      (item.createdAt === latestDate || item.createdAt === yesterday),
-  );
 
+  //--------------------------------------------------------------------------------
+  const allDimonds = getLatestDataByPriority('Diamond');
+
+  
   const dimondData = marketData.filter(item => item.item === 'Diamond');
   const dimondsInfo = dimondData.map(item => ({
     name: item.item,
     category: item.category,
   }));
+
+  //===============================================================================================
+  // // ----------------------------------old code ---------------------
+  // const currentdate = new Date().toISOString().split('T')[0];
+  const dates = marketData.map(i => i.date);
+  const latestDate = dates.sort().reverse()[0]; // sab se last wali (yaani latest)
+
+  // //----------------------------------------------------------------
+  // const today = new Date();
+  // const yesterday = new Date(today);
+  // yesterday.setDate(today.getDate() - 1);
+
+  // console.log('Yesterday', yesterday.toISOString().split('T')[0]);
+
+  // // -------------------------GOLD-------------------------------------------
+
+  // const allGoldItems = marketData.filter(
+  //   item =>
+  //     item.item === 'Gold' &&
+  //     (item.date === latestDate || item.date === yesterday),
+  // );
+
+  // const goldItems = allGoldItems.filter(
+  //   (value, index, self) =>
+  //     index === self.findIndex(t => t.date === value.date),
+  // );
+  // // ------------------------------------------------------------------
+  // const goldData = marketData.filter(item => item.item === 'Gold');
+  // const goldInfo = goldData.map(item => ({
+  //   name: item.item,
+  //   category: item.category,
+  // }));
+  // // ---------------------------crude oil-----------------------------------------
+  // const allCrudeOil = marketData.filter(
+  //   item =>
+  //     item.item === 'Crude Oil' &&
+  //     (item.date === latestDate || item.date === yesterday),
+  // );
+
+  // const CrudeOilData = marketData.filter(item => item.item === 'Crude Oil');
+  // const crudeOilInfo = CrudeOilData.map(item => ({
+  //   name: item.item,
+  //   category: item.category,
+  // }));
+  // // ---------------------------Dimonds-----------------------------------------
+  // const allDimonds = marketData.filter(
+  //   item =>
+  //     item.item === 'Diamond' &&
+  //     (item.date === latestDate || item.date === yesterday),
+  // );
+
+  // const dimondData = marketData.filter(item => item.item === 'Diamond');
+  // const dimondsInfo = dimondData.map(item => ({
+  //   name: item.item,
+  //   category: item.category,
+  // }));
   //-------------------------------------------------------------------------------------
   const formatNumber = num => {
     if (!num) return '';
-    return Number(num).toLocaleString('en-PK'); // ya 'en-IN' ya 'en-US'
+    return Number(num).toLocaleString('en-PK');
   };
 
-  // console.log('all CrudeOil', allCrudeOil)
+  //===================gold .silver,cruf oil k elawa data current,yesterday,last latest date==============================
 
-  // --------------------------------------------
+  const uniqueOtherItems = [
+    ...new Set(
+      marketData
+        .filter(
+          item =>
+            item.item !== 'Gold' &&
+            item.item !== 'Crude Oil' &&
+            item.item !== 'Diamond',
+        )
+        .map(item => item.item),
+    ),
+  ];
+
+  let prioritizedOtherItems = [];
+
+  uniqueOtherItems.forEach(itemName => {
+    // Har item ke liye 3-step priority check hogi: Aaj, phir Kal, phir Sabse Latest Available
+    const latestData = getLatestDataByPriority(itemName);
+
+    if (latestData.length > 0) {
+   
+      prioritizedOtherItems.push(...latestData);
+    }
+  });
+
+  
+
+  //=====================================================================================
+  // ----------------new renderitems----------------------------
   const renderItem = ({ item }) => (
-    <View>
-      {/* sirf Gold ko skip karo */}
-      {item.item !== 'Gold' &&
-        item.item !== 'Crude Oil' &&
-        item.item !== 'Diamonds' && (
-          <TouchableOpacity
-            style={styles.cardContainer}
-            onPress={() =>
-              navigation.navigate('Details', {
-                name: item.item,
-                category: item.category,
-              })
-            }
-          >
-            {item.createdAt === latestDate ? (
-              <View style={styles.card}>
-                <Image
-                  source={
-                    item.item === 'Silver'
-                      ? AppImages.silver
-                      : item.item === 'Platinum'
-                      ? AppImages.platinum
-                      : // : item.item === 'Crude Oil'
-                      //   ? AppImages.oil
-                      item.item === 'Diamond'
-                      ? AppImages.dimond
-                      : item.category === 'Currency'
-                      ? AppImages.currency
-                      : null
-                  }
-                  style={styles.cardImg}
-                />
+  // 1. item.item !== 'Gold' ki condition hata di
+  <View>
+    <TouchableOpacity
+      style={styles.cardContainer}
+      onPress={() =>
+        navigation.navigate('Details', {
+          name: item.item,
+          category: item.category,
+        })
+      }
+    >
+      {/* 2. item.date === latestDate ki condition bhi hata di */}
+      <View style={styles.card}>
+        <Image
+          source={
+            item.item === 'Silver'
+              ? AppImages.silver
+              : item.item === 'Platinum'
+              ? AppImages.platinum
+              : item.category === 'Currency'
+              ? AppImages.currency
+              : null
+          }
+          style={styles.cardImg}
+        />
 
-                <View style={styles.viewTop}>
-                  <Text style={styles.name}>{item.item}</Text>
-                  <Text style={styles.date}>
-                    Date: {item.createdAt || 'N/A'}
-                  </Text>
-                </View>
+        <View style={styles.viewTop}>
+          <Text style={styles.name}>{item.item}</Text>
+          {/* item.date mein ab wohi date hogi jo priority se mili hai */}
+          <Text style={styles.date}>Date: {item.date || 'N/A'}</Text>
+        </View>
 
-                {/* baqi items ka data */}
-                <View>
-                  {item.quality && (
-                    <Text style={styles.text}>Quality: {item.quality}</Text>
-                  )}
+        {/* baqi items ka data: units, price, etc. (yeh hissa same rahega) */}
+        <View>
+          {item.quality && (
+            <Text style={styles.text}>Quality: {item.quality}</Text>
+          )}
 
-                  {item.units && item.units.length > 0 ? (
-                    item.units.map((u, index) => (
-                      <View key={index} style={styles.unitRow}>
-                        <Text style={styles.unit}>{u.unit}</Text>
-                        <Text style={styles.price}>
-                          RS {formatNumber(u.price)}
-                        </Text>
-                      </View>
-                    ))
-                  ) : (
-                    <View style={styles.unitRow}>
-                      <Text style={styles.unit}>{item.unit}</Text>
-                      <Text style={styles.price}>
-                        RS {formatNumber(item.price)}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-                <View style={styles.historyBtn1}>
-                  <MaterialIcons name="history" size={18} color="#fff" />
-                  <Text style={styles.history1}>history</Text>
-                </View>
+          {/* ... units aur price display ka code yahan aayega ... */}
+          {item.units && item.units.length > 0 ? (
+            item.units.map((u, index) => (
+              <View
+                key={index}
+                style={u.price ? styles.unitRow : styles.displayNone}
+              >
+                <Text style={styles.unit}>{u.unit}</Text>
+                <Text style={styles.price}>
+                  RS {formatNumber(u.price)}
+                </Text>
               </View>
-            ) : null}
-            {/* <View style={styles.historyBtn}>
-                <MaterialIcons name="history" size={18} color="#fff" />
-                <Text style={styles.history}>history</Text>
-              </View> */}
-          </TouchableOpacity>
-        )}
-    </View>
-  );
+            ))
+          ) : (
+            <View style={styles.unitRow}>
+              <Text style={styles.unit}>{item.unit}</Text>
+              <Text style={styles.price}>
+                RS {formatNumber(item.price)}
+              </Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.historyBtn1}>
+          <MaterialIcons name="history" size={18} color="#fff" />
+          <Text style={styles.history1}>history</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  </View>
+);
+// ---------------------old renderitem------------------
+  // const renderItem = ({ item }) => (
+  //   <View>
+  //     {/* sirf Gold ko skip karo */}
+  //     {item.item !== 'Gold' &&
+  //       item.item !== 'Crude Oil' &&
+  //       item.item !== 'Diamonds' && (
+  //         <TouchableOpacity
+  //           style={styles.cardContainer}
+  //           onPress={() =>
+  //             navigation.navigate('Details', {
+  //               name: item.item,
+  //               category: item.category,
+  //             })
+  //           }
+  //         >
+  //           {item.date === latestDate ? (
+  //             <View style={styles.card}>
+  //               <Image
+  //                 source={
+  //                   item.item === 'Silver'
+  //                     ? AppImages.silver
+  //                     : item.item === 'Platinum'
+  //                     ? AppImages.platinum
+  //                     : // : item.item === 'Crude Oil'
+  //                     //   ? AppImages.oil
+  //                     item.item === 'Diamond'
+  //                     ? AppImages.dimond
+  //                     : item.category === 'Currency'
+  //                     ? AppImages.currency
+  //                     : null
+  //                 }
+  //                 style={styles.cardImg}
+  //               />
+
+  //               <View style={styles.viewTop}>
+  //                 <Text style={styles.name}>{item.item}</Text>
+  //                 <Text style={styles.date}>Date: {item.date || 'N/A'}</Text>
+  //               </View>
+
+  //               {/* baqi items ka data */}
+  //               <View>
+  //                 {item.quality && (
+  //                   <Text style={styles.text}>Quality: {item.quality}</Text>
+  //                 )}
+
+  //                 {item.units && item.units.length > 0 ? (
+  //                   item.units.map((u, index) => (
+  //                     <View
+  //                       key={index}
+  //                       style={u.price ? styles.unitRow : styles.displayNone}
+  //                     >
+  //                       <Text style={styles.unit}>{u.unit}</Text>
+  //                       <Text style={styles.price}>
+  //                         RS {formatNumber(u.price)}
+  //                       </Text>
+  //                     </View>
+  //                   ))
+  //                 ) : (
+  //                   <View style={styles.unitRow}>
+  //                     <Text style={styles.unit}>{item.unit}</Text>
+  //                     <Text style={styles.price}>
+  //                       RS {formatNumber(item.price)}
+  //                     </Text>
+  //                   </View>
+  //                 )}
+  //               </View>
+  //               <View style={styles.historyBtn1}>
+  //                 <MaterialIcons name="history" size={18} color="#fff" />
+  //                 <Text style={styles.history1}>history</Text>
+  //               </View>
+  //             </View>
+  //           ) : null}
+  //           {/* <View style={styles.historyBtn}>
+  //               <MaterialIcons name="history" size={18} color="#fff" />
+  //               <Text style={styles.history}>history</Text>
+  //             </View> */}
+  //         </TouchableOpacity>
+  //       )}
+  //   </View>
+  // );
   // --- Skeleton Component ---
   const SkeletonCard = () => (
-    <View
-      style={styles.cardContainer}
-    >
+    <View style={styles.cardContainer}>
       <View style={styles.card}>
         <ShimmerPlaceholder
           LinearGradient={LinearGradient}
@@ -285,10 +478,10 @@ export default function HomeScreen({ route }) {
         <ScrollView>
           {isLoading ? (
             <View style={{ padding: 10 }}>
-              <SkeletonCard /> 
-              <SkeletonCard /> 
-              <SkeletonCard /> 
-              <SkeletonCard /> 
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
             </View>
           ) : (
             <>
@@ -296,7 +489,7 @@ export default function HomeScreen({ route }) {
               <View style={{ padding: 10 }}>
                 {allGoldItems.length > 0 ? (
                   <TouchableOpacity
-                  activeOpacity={.3}
+                    activeOpacity={0.3}
                     style={styles.cardContainer}
                     onPress={() =>
                       navigation.navigate('Details', {
@@ -310,7 +503,11 @@ export default function HomeScreen({ route }) {
 
                       <View style={styles.viewTop}>
                         <Text style={styles.name}>Gold</Text>
-                        <Text style={styles.date}>Date: {latestDate}</Text>
+                        <Text style={styles.date}>
+                          Date:{' '}
+                          {/* Ab hum sirf array ki pehli entry ki date use karenge */}
+                          {allGoldItems[0].date}
+                        </Text>
                       </View>
 
                       {/* Table */}
@@ -391,7 +588,6 @@ export default function HomeScreen({ route }) {
                           <Text style={[styles.cell, styles.headerText]}>
                             Name
                           </Text>
-                          {/* <Text style={[styles.cell, styles.headerText]}>Unit</Text> */}
                           <Text style={[styles.cell, styles.headerText]}>
                             Price
                           </Text>
@@ -399,7 +595,6 @@ export default function HomeScreen({ route }) {
 
                         {/* All qualities show in same table */}
                         {allCrudeOil.map(item => {
-                          // const tolaData = item.units.find((u) => u.unit === '1 Tola');
                           return (
                             <View key={item.id} style={styles.row}>
                               <Text style={styles.cell}>{item.unit}</Text>
@@ -407,8 +602,7 @@ export default function HomeScreen({ route }) {
                                 {formatNumber(item.price)}
                               </Text>
 
-                              {/* <Text style={styles.cell}>{tolaData?.unit || '-'}</Text>
-                          <Text style={styles.cell}>{tolaData?.price || '-'}</Text> */}
+                              
                             </View>
                           );
                         })}
@@ -460,7 +654,6 @@ export default function HomeScreen({ route }) {
                           <Text style={[styles.cell, styles.headerText]}>
                             Quality
                           </Text>
-                          {/* <Text style={[styles.cell, styles.headerText]}>Unit</Text> */}
                           <Text style={[styles.cell, styles.headerText]}>
                             Price
                           </Text>
@@ -468,7 +661,6 @@ export default function HomeScreen({ route }) {
 
                         {/* All qualities show in same table */}
                         {allDimonds.map(item => {
-                          // const tolaData = item.units.find((u) => u.unit === '1 Tola');
                           return (
                             <View key={item.id} style={styles.row}>
                               <Text style={styles.cell}>{item.unit}</Text>
@@ -476,8 +668,7 @@ export default function HomeScreen({ route }) {
                                 {formatNumber(item.price)}
                               </Text>
 
-                              {/* <Text style={styles.cell}>{tolaData?.unit || '-'}</Text>
-                          <Text style={styles.cell}>{tolaData?.price || '-'}</Text> */}
+                             
                             </View>
                           );
                         })}
@@ -504,7 +695,7 @@ export default function HomeScreen({ route }) {
               {/* -------------------------------- */}
 
               <FlatList
-                data={marketData}
+                data={prioritizedOtherItems}
                 renderItem={renderItem}
                 keyExtractor={(item, index) => index.toString()}
                 contentContainerStyle={{ padding: responsiveWidth(3) }}
@@ -653,5 +844,8 @@ const styles = StyleSheet.create({
   history1: {
     fontSize: 16,
     color: '#fff',
+  },
+  displayNone: {
+    display: 'none',
   },
 });

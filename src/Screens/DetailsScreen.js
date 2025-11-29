@@ -101,20 +101,45 @@ export const GoldPriceHistory = props => {
   };
 
   //--------------------filter by date----------------------------
-  const searchBydate = () => {
-    setisLoading(true);
+  // const searchBydate = () => {
+  //   setisLoading(true);
 
-    let startDate = new Date(fromDate.toISOString().split('T')[0]);
-    let endDate = new Date(toDate.toISOString().split('T')[0]);
+  //   let startDate = new Date(fromDate.toISOString().split('T')[0]);
+  //   let endDate = new Date(toDate.toISOString().split('T')[0]);
 
-    const filteredByDate = marketData.filter(item => {
-      const itemDate = new Date(item.createdAt);
-      return itemDate >= startDate && itemDate <= endDate;
-    });
+  //   const filteredByDate = marketData.filter(item => {
+  //     const itemDate = new Date(item.date);
+  //     return itemDate >= startDate && itemDate <= endDate;
+  //   });
 
-    setMarketData(filteredByDate);
-    console.log('Filtered data by date:', filteredByDate);
-    setisLoading(false);
+  //   setMarketData(filteredByDate);
+  //   console.log('Filtered data by date:', filteredByDate);
+  //   setisLoading(false);
+  // };
+  const searchBydate = async () => {
+    try {
+      setisLoading(true);
+      let startDate = new Date(fromDate.toISOString().split('T')[0]);
+      let endDate = new Date(toDate.toISOString().split('T')[0]);
+
+      const snapShot = await firestore()
+        .collection('MarketData')
+        .where('category', '==', lowerCaseCategory)
+        .where('item', '==', lowerCaseName)
+        .where('date', '>=', startDate)
+        .where('date', '<=', endDate)
+        .get();
+
+      const data = snapShot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // const sortedData = data.sort(
+      //   (a, b) => new Date(b.date) - new Date(a.date),
+      // );
+      setMarketData(data);
+      setisLoading(false);
+    } catch (error) {
+      console.log('try catch error :', error);
+      setisLoading(false);
+    }
   };
 
   useFocusEffect(
@@ -154,7 +179,7 @@ export const GoldPriceHistory = props => {
             style={styles.banner}
           />
           <View style={styles.row}>
-            <Text style={styles.date}>{item.createdAt}</Text>
+            <Text style={styles.date}>{item.date}</Text>
             {item.quality && (
               <View style={styles.quality}>
                 <Text style={styles.qualityText}>{item.quality || ''}</Text>
@@ -172,7 +197,7 @@ export const GoldPriceHistory = props => {
 
           {/* Units array (agar available ho) */}
           {item.units?.map((u, index) => (
-            <View style={styles.row} key={index}>
+            <View style={u.price ? styles.row : styles.displayNone} key={index}>
               <Text style={styles.unit}>{u.unit}</Text>
               <Text style={styles.price}>{formatNumber(u.price)}</Text>
             </View>
@@ -203,7 +228,7 @@ export const GoldPriceHistory = props => {
           <Text style={styles.name}>{item.item}</Text>
 
           <View style={styles.row}>
-            <Text style={styles.date}>{item.createdAt}</Text>
+            <Text style={styles.date}>{item.date}</Text>
             {item.quality && (
               <View style={styles.quality}>
                 <Text style={styles.qualityText}>{item.quality || ''}</Text>
@@ -221,14 +246,14 @@ export const GoldPriceHistory = props => {
 
           {/* Units array (agar available ho) */}
           {item.units?.map((u, index) => (
-            <View style={styles.row} key={index}>
+            <View style={u.price ? styles.row : styles.displayNone} key={index}>
               <Text style={styles.unit}>{u.unit}</Text>
               <Text style={styles.price}>{formatNumber(u.price)}</Text>
             </View>
           ))}
         </View>
       )}
-      <View>
+      {/* <View>
         <TouchableOpacity
           style={styles.editBtn}
           onPress={() => navigation.navigate('EditData', { id: item.id })}
@@ -236,7 +261,7 @@ export const GoldPriceHistory = props => {
           <MaterialIcons name="edit" size={20} color="#fff" />
           <Text style={styles.editBtnText}>Edit</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
     </View>
   );
 
@@ -553,4 +578,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
   },
+  displayNone:{
+    display:'none'
+  }
 });

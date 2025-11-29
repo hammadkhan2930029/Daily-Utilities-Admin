@@ -187,27 +187,28 @@ export const SettingsScreen = () => {
   const [unitPriceErrors, setUnitPriceErrors] = useState({});
 
   const handleUnitPriceChange = (unitId, price) => {
-    const { isValid, filteredText } = validateNumericInput(price);
+    // const { isValid, filteredText } = validateNumericInput(price);
     setUnitPrices(prev => ({
       ...prev,
-      [unitId]: filteredText,
+      [unitId]: price,
     }));
     setUnitPriceErrors(prev => ({
       ...prev,
-      [unitId]: isValid ? '' : 'Only numbers are allowed.',
+      [unitId]: '',
     }));
   };
 
   //---------------------single price validate-----------------------------------
   const handleSinglePriceChange = value => {
-    const { isValid, filteredText } = validateNumericInput(value);
+    // const { isValid, filteredText } = validateNumericInput(value);
 
-    setPrice(filteredText);
-    setPriceError(isValid ? '' : 'Only numbers are allowed.');
+    setPrice(value);
+    setPriceError('');
   };
 
   //----------------------------------------------------
-
+const newDate = date.toISOString().split('T')[0];
+console.log("new date :" ,newDate)
   const handleSubmit = async () => {
     const auth = getAuth();
     const userUid = auth.currentUser?.uid;
@@ -222,7 +223,7 @@ export const SettingsScreen = () => {
     if (selectedItem?.name === 'Gold' || selectedItem?.name === 'Silver') {
       // Multiple units ke sath payload
       payload = {
-        date:date,
+        date:newDate,
         category: selectedCategory?.name,
         item: selectedItem?.name,
         quality: selectedQuality?.name || null,
@@ -237,7 +238,7 @@ export const SettingsScreen = () => {
     } else {
       // Normal payload
       payload = {
-        date:date,
+        date:newDate,
 
         category: selectedCategory?.name,
         item: selectedItem?.name,
@@ -277,7 +278,7 @@ export const SettingsScreen = () => {
       <ScrollView style={styles.ScrollContainer}>
         <View style={styles.container}>
           {/* //---------------date picker-------------- */}
-          <View style={{ padding: 20 }}>
+          <View >
             
             <DatePicker
               modal
@@ -303,7 +304,7 @@ export const SettingsScreen = () => {
                    {date.toLocaleDateString("en-GB")}
                 </Text>
                 <TouchableOpacity onPress={() => setOpen(true)}>
-                  <MaterialIcons name='calendar-month' size={24} color={"#000"} />
+                  <MaterialIcons name='calendar-month' size={24} color={"#daa520"} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -418,11 +419,11 @@ export const SettingsScreen = () => {
                         value={unitPrices[u.id] || ''}
                         keyboardType="numeric"
                       />
-                      {unitPriceErrors[u.id] && (
+                      {/* {unitPriceErrors[u.id] && (
                         <Text style={styles.errorText}>
                           {unitPriceErrors[u.id]}
                         </Text>
-                      )}
+                      )} */}
                     </View>
                   ))}
                 </View>
@@ -468,9 +469,9 @@ export const SettingsScreen = () => {
                         value={price}
                         keyboardType="numeric"
                       />
-                      {priceError ? (
+                      {/* {priceError ? (
                         <Text style={styles.errorText}>{priceError}</Text>
-                      ) : null}
+                      ) : null} */}
                     </View>
                   )}
                 </View>
@@ -582,7 +583,7 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     borderRadius: 8,
     paddingHorizontal: 10,
-    marginBottom: 20,
+    marginBottom: 10,
     backgroundColor: '#fff',
     color: '#000',
     elevation: 3,

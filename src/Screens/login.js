@@ -47,7 +47,7 @@ const Login = () => {
                 toast.show("Successfully Loggedin", `Hello ${result.user.name}`, {
                     type: "success",
                     placement: "top",
-                    duration: 4000,
+                    duration: 3000,
                     offset: 30,
                     animationType: "slide-in",
                     style: { backgroundColor: "green" },
@@ -140,7 +140,7 @@ const Login = () => {
 
                                 {/* Login Button */}
                                 <TouchableOpacity disabled={!isValid} activeOpacity={0.7} onPress={handleSubmit}>
-                                    <View style={[styles.button, { backgroundColor: isValid ? "#4CAF50" : "gray" }]}>
+                                    <View style={[styles.button, { backgroundColor: isValid ? "#d4af37" : "gray" }]}>
                                         <Text style={styles.buttonText}>LOG IN</Text>
                                     </View>
                                 </TouchableOpacity>
@@ -194,6 +194,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         elevation: 3,
         marginBottom: responsiveHeight(10),
+        
 
     },
     input: {

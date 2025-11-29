@@ -182,7 +182,7 @@ export const History = props => {
 
     if (result && result.data) {
       const sortedData = result.data.sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+        (a, b) => new Date(b.date) - new Date(a.date),
       );
       setMarketData(sortedData);
       setAllMarketData(sortedData);
@@ -201,29 +201,28 @@ export const History = props => {
     try {
       setisLoading(true);
       let query = firestore().collection('MarketData');
-
-      //-----date filter---------
-      if (fromDate && toDate) {
-       
-
-        let startDate = fromDate.toISOString().split('T')[0];
-        let endDate = toDate.toISOString().split('T')[0];
-        console.log('start :',startDate)
-        console.log('end :',endDate)
-
-        query = query
-          .where('createdAt', '>=', startDate)
-          .where('createdAt', '<=', endDate);
-      }
       //------category filter------
-      if (selectedCategory) {
+      if (selectedCategory && selectedCategory.name) {
         query = query.where('category', '==', selectedCategory.name);
       }
 
       //------item filter--------
-      if (selectedItem) {
+      if (selectedItem && selectedItem.name) {
         query = query.where('item', '==', selectedItem.name);
       }
+
+      //-----date filter---------
+      if (fromDate && toDate) {
+        let startDate = fromDate.toISOString().split('T')[0];
+        let endDate = toDate.toISOString().split('T')[0];
+        console.log('start :', startDate);
+        console.log('end :', endDate);
+
+        query = query
+          .where('date', '>=', startDate)
+          .where('date', '<=', endDate);
+      }
+
       //-------------------
 
       const snapShot = await query.get();
@@ -238,15 +237,12 @@ export const History = props => {
       } else {
         Alert.alert('Data not found');
         console.log('No data found');
-        setisLoading(false);
+        // setisLoading(false);
 
-        setFromDate(null);
-        setToDate(null);
-        // setCategory(null);
-        // setItem(null);
+        // setFromDate(null);
+        // setToDate(null);
 
-       
-        setMarketData(allMarketData);
+        setMarketData([]);
         setisLoading(false);
       }
 
@@ -257,23 +253,22 @@ export const History = props => {
       console.log('try catch error :', error);
     }
   };
-
-  //-----------------------------------------------------------------------------------
-
-  // const filteredData = async () => {
-  //   try {
-  //     if (selectedCategory) {
-  //       const filterByCategory = marketData.filter(item => {
-  //         return item.category === selectedCategory.name;
-
-  //       });
-
-  //       setMarketData(filterByCategory)
-  //     }
-  //   } catch (error) {
-  //     console.log('try catch error :', error);
-  //   }
-  // };
+  useFocusEffect(
+    useCallback(() => {
+      setFromDate(new Date());
+      setToDate(new Date());
+      setCategory();
+      setItem();
+      fetchData();
+      return () => {
+        setFromDate(new Date());
+        setToDate(new Date());
+        setCategory();
+        setItem();
+        fetchData();
+      };
+    }, []),
+  );
 
   //-----------------------------------------------------------------------------------
   const formatNumber = num => {
@@ -317,7 +312,7 @@ export const History = props => {
 
       {/* Date and Quality */}
       <View style={styles.row}>
-        <Text style={styles.date}>{item.createdAt || 'N/A'}</Text>
+        <Text style={styles.date}>{item.date || 'N/A'}</Text>
         {item.quality && (
           <View style={styles.quality}>
             <Text style={styles.qualityText}>{item.quality || ''}</Text>
@@ -336,12 +331,13 @@ export const History = props => {
 
       {/* Units array (agar available ho) */}
       {item.units?.map((u, index) => (
-        <View style={styles.row} key={index}>
+
+        <View style={u.price ? styles.row : styles.displayNone} key={index}>
           <Text style={styles.unit}>{u.unit}</Text>
           <Text style={styles.price}>Rs {formatNumber(u.price)}</Text>
         </View>
       ))}
-      <View>
+      {/* <View>
         <TouchableOpacity
           style={styles.editBtn}
           onPress={() => navigation.navigate('EditData', { id: item.id })}
@@ -349,7 +345,7 @@ export const History = props => {
           <MaterialIcons name="edit" size={20} color="#fff" />
           <Text style={styles.editBtnText}>Edit</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
     </View>
   );
 
@@ -476,7 +472,7 @@ export const History = props => {
                 {/*------------------------------------------------------------------ */}
                 {/* ----Category -------*/}
 
-                <Text style={styles.label}>Select Category</Text>
+                <Text style={styles.label}>Category</Text>
                 <Dropdown
                   style={styles.dropdown}
                   data={data.categories.map(cat => ({
@@ -500,7 +496,7 @@ export const History = props => {
                 {/* Item */}
                 {category && (
                   <View>
-                    <Text style={styles.label}>Select Item</Text>
+                    <Text style={styles.label}>Sub Category</Text>
                     <Dropdown
                       style={styles.dropdown}
                       data={
@@ -524,6 +520,7 @@ export const History = props => {
                     />
                   </View>
                 )}
+
                 <TouchableOpacity
                   style={styles.btnView}
                   onPress={() => searchData()}
@@ -531,15 +528,21 @@ export const History = props => {
                   <Text style={styles.btnText}>Search</Text>
                 </TouchableOpacity>
               </View>
-              <FlatList
-                data={marketData}
-                renderItem={renderItem}
-                keyExtractor={(item, index) => item.id || index.toString()}
-                contentContainerStyle={{ paddingBottom: 15 }}
-                ListEmptyComponent={
-                  <Text style={styles.title}>No data available.</Text>
-                }
-              />
+              {marketData.length === 0 ? (
+                <Text style={styles.errorMsg}>
+                  No data found for the selected filter.
+                </Text>
+              ) : (
+                <FlatList
+                  data={marketData}
+                  renderItem={renderItem}
+                  keyExtractor={(item, index) => item.id || index.toString()}
+                  contentContainerStyle={{ paddingBottom: 15 }}
+                  ListEmptyComponent={
+                    <Text style={styles.title}>No data available.</Text>
+                  }
+                />
+              )}
             </ScrollView>
           </>
         )}
@@ -760,4 +763,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
   },
+  errorMsg:{
+    fontSize:responsiveFontSize(2.5),
+    color:"#000",
+    textAlign:'center',
+    marginTop:responsiveHeight(5)
+  },
+  displayNone:{
+    display:'none'
+  }
 });
