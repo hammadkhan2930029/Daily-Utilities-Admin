@@ -16,11 +16,11 @@ export default function App() {
 
   return (
     <ToastProvider
-      placement="bottom"
-      duration={4000}
-      animationType="slide-in"
-      offset={30}
-      swipeEnabled={true}
+      // placement="bottom"
+      // duration={4000}
+      // animationType="slide-in"
+      // offset={30}
+      // swipeEnabled={true}
     >
       <StatusBar barStyle='dark-content' hidden={false} backgroundColor='#fff'/>
       {loader ? <Splash /> : <AppNavigator />}

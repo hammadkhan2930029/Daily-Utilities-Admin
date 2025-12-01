@@ -13,6 +13,8 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { getMarketData } from '../firbase/dataBase/getData';
 import { string } from 'yup';
 import { updateMarketitems } from '../firbase/dataBase/updatedData';
+import { useToast } from 'react-native-toast-notifications';
+
 import {
   responsiveWidth,
   responsiveHeight,
@@ -23,7 +25,12 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
 
+
+
 export const EditData = props => {
+
+  const toast = useToast();
+
   const [isloding, setisLoading] = useState(true);
   const navigation = useNavigation();
   const id = props?.route?.params.id;
@@ -51,6 +58,7 @@ export const EditData = props => {
 
   // -----------------------------------------------
   const handleUpdate = async () => {
+    setisLoading(true)
     const payload = {};
     if (foundItem.price && foundItem.unit) {
       payload.price = foundItem.price;
@@ -63,10 +71,29 @@ export const EditData = props => {
 
     const result = await updateMarketitems(foundItem.id, payload);
     if (result.success) {
-      Alert.alert('Price Updated successfully!');
-      navigation.goBack();
+      console.log('result success :', result.success);
+      toast.show('Price Updated successfully!', {
+        type: 'success',
+        placement: 'top',
+        duration: 2000,
+        offset: 30,
+        animationType: 'slide-in',
+      });
+
+      setTimeout(() => {
+        setisLoading(false)
+        navigation.goBack();
+      }, 1000);
     } else {
-      Alert.alert('update failed' + result.error);
+      toast.show('update failed', {
+        type: 'warning',
+        placement: 'top',
+        duration: 4000,
+        offset: 30,
+        animationType: 'slide-in',
+      });
+      // Alert.alert('update failed' + result.error);
+      console.log('error :', result.error);
     }
   };
 
@@ -74,18 +101,15 @@ export const EditData = props => {
   const SkeletonCard = () => (
     <View style={style.cardContainer}>
       <View style={style.Shimmercard}>
-        
         {[1, 2, 3].map(i => (
           <View key={i} style={[style.input, { paddingHorizontal: 0 }]}>
             <ShimmerPlaceholder
               LinearGradient={LinearGradient}
-            
               style={[style.input, { paddingHorizontal: 0 }]}
               shimmerColors={['#f0f0f0', '#e0e0e0', '#f0f0f0']}
             />
           </View>
         ))}
-       
       </View>
     </View>
   );
@@ -101,11 +125,11 @@ export const EditData = props => {
       <ScrollView>
         {isloding ? (
           <View>
-            <SkeletonCard/>
-            <SkeletonCard/>
-            <SkeletonCard/>
-        </View>
-        ) :(
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </View>
+        ) : (
           <>
             <View style={style.scrollview}>
               {/*-------Category----------*/}
@@ -148,10 +172,9 @@ export const EditData = props => {
                   <Text style={style.label}>Price</Text>
                   <TextInput
                     value={String(foundItem.price ?? '')}
-                      
                     onChangeText={text => {
-                       const onlyNumbers = text.replace(/[^0-9]/g, '');
-                      setFoundItem({ ...foundItem, price: onlyNumbers });
+                      // const onlyNumbers = text.replace(/[^0-9]/g, '');
+                      setFoundItem({ ...foundItem, price: text });
                     }}
                     style={style.inputPrice}
                     keyboardType="numeric"
@@ -179,9 +202,9 @@ export const EditData = props => {
                         keyboardType="numeric"
                         style={style.inputPrice}
                         onChangeText={text => {
-                          const onlyNumbers = text.replace(/[^0-9]/g, '');
+                          // const onlyNumbers = text.replace(/[^0-9]/g, '');
                           const updated = [...foundItem.units];
-                          updated[index].price = onlyNumbers;
+                          updated[index].price = text;
                           setFoundItem({ ...foundItem, units: updated });
                         }}
                       />
@@ -245,14 +268,12 @@ const style = StyleSheet.create({
     paddingHorizontal: 14,
     marginBottom: 22,
     backgroundColor: '#ffffff',
-    color: '#b3b2b2ff',
+    color: '#111',
     elevation: 3,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 6,
-                          
-
   },
 
   updateBtn: {
@@ -284,66 +305,3 @@ const style = StyleSheet.create({
     marginTop: responsiveHeight(3),
   },
 });
-
-// const style = StyleSheet.create({
-//   scrollview: {
-//     width: responsiveWidth(90),
-//     alignSelf: 'center',
-//     marginTop: responsiveHeight(5),
-//   },
-//   label: {
-//     fontSize: responsiveFontSize(2),
-//     marginBottom: 5,
-//     color: '#000',
-//   },
-//   input: {
-//     width: responsiveWidth(90),
-//     height: 50,
-//     borderWidth: 1,
-//     borderColor: '#ccc',
-//     borderRadius: 8,
-//     paddingHorizontal: 10,
-//     marginBottom: 20,
-//     backgroundColor: '#f5f5f5',
-//     color: '#000',
-//     elevation: 3,
-//   },
-//   inputPrice: {
-//     width: responsiveWidth(90),
-//     height: 50,
-//     borderWidth: 1,
-//     borderColor: '#ccc',
-//     borderRadius: 8,
-//     paddingHorizontal: 10,
-//     marginBottom: 20,
-//     backgroundColor: '#fff',
-//     color: '#000',
-//     elevation: 3,
-//   },
-
- 
-  
-//   updateBtn: {
-//     backgroundColor: '#d4af37',
-//     padding: 10,
-//     borderRadius: 8,
-//     alignItems: 'center',
-//     marginTop: 10,
-//     width: responsiveWidth(90),
-//     alignSelf: 'center',
-//     marginBottom: responsiveHeight(2),
-//     elevation: 5,
-//   },
-//   btnText: {
-//     fontSize: responsiveFontSize(2.7),
-//     color: '#fff',
-//     fontWeight: '700',
-//     textTransform: 'uppercase',
-//   },
-//   Shimmercard:{
-//     justifyContent:'flex-end',
-//     alignItems:'center',
-//     marginTop:responsiveHeight(3)
-
-//   }
-// });

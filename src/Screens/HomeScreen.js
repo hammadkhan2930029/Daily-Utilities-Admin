@@ -531,7 +531,7 @@ export default function HomeScreen({ route }) {
                             u => u.unit === '1 Tola',
                           );
                           return (
-                            <View key={item.id} style={styles.row}>
+                            <View key={item.id} style={tolaData.price ? styles.row : styles.displayNone}>
                               <Text style={styles.cell}>{item.quality}</Text>
                               <Text style={styles.cell}>
                                 {tolaData?.unit || '-'}

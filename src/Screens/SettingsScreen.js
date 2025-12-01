@@ -23,7 +23,8 @@ import { getAuth } from '@react-native-firebase/auth';
 import { useNavigation } from '@react-navigation/native';
 import DatePicker from 'react-native-date-picker';
 import { Button } from 'react-native';
-import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import firestore from '@react-native-firebase/firestore';
 
 const data = {
   categories: [
@@ -106,8 +107,33 @@ const data = {
         },
         {
           id: 203,
-          name: 'USDT',
-          units: [{ id: 20311, name: '1 USDT' }],
+          name: 'SAR',
+          units: [{ id: 20311, name: '1 SAR' }],
+        },
+        {
+          id: 204,
+          name: 'GBP',
+          units: [{ id: 20411, name: '1 GBP' }],
+        },
+        {
+          id: 205,
+          name: 'KWD',
+          units: [{ id: 20511, name: '1 KWD' }],
+        },
+        {
+          id: 206,
+          name: 'OMR',
+          units: [{ id: 20611, name: '1 OMR' }],
+        },
+        {
+          id: 207,
+          name: 'QAR',
+          units: [{ id: 20711, name: '1 QAR' }],
+        },
+        {
+          id: 208,
+          name: 'AED',
+          units: [{ id: 20811, name: '1 AED' }],
         },
       ],
     },
@@ -187,7 +213,6 @@ export const SettingsScreen = () => {
   const [unitPriceErrors, setUnitPriceErrors] = useState({});
 
   const handleUnitPriceChange = (unitId, price) => {
-    // const { isValid, filteredText } = validateNumericInput(price);
     setUnitPrices(prev => ({
       ...prev,
       [unitId]: price,
@@ -200,21 +225,64 @@ export const SettingsScreen = () => {
 
   //---------------------single price validate-----------------------------------
   const handleSinglePriceChange = value => {
-    // const { isValid, filteredText } = validateNumericInput(value);
-
     setPrice(value);
     setPriceError('');
   };
+  //---------------check Duplicate----------------------
+  const checkDuplicate = async (payload, userUid) => {
+    let query = firestore()
+      .collection('MarketData')
+      .where('date', '==', payload.date)
+      .where('category', '==', payload.category)
+      .where('item', '==', payload.item);
+
+    if (payload.quality) {
+      query = query.where('quality', '==', payload.quality);
+    }
+
+    const snap = await query.get();
+    if (snap.empty) return false;
+
+    //------------
+    // if (payload.units) {
+    //   const existing = snap.docs.map(doc => doc.data());
+
+    //   return existing.some(e => {
+    //     const existingUnits = e.units.map(u => u.unit).sort();
+    //     const newUnits = payload.units.map(u => u.unit).sort();
+    //     return JSON.stringify(existingUnits) === JSON.stringify(newUnits);
+    //   });
+    // }
+    if (payload.units) {
+      const existing = snap.docs.map(doc => doc.data());
+
+      return payload.units.some(unitObj => {
+        const unitName = unitObj.unit;
+
+        // check whether this exact unit already exists
+        return existing.some(e => e.units?.some(u => u.unit === unitName));
+      });
+    }
+    //-------------
+    const existing = snap.docs.map(doc => doc.data());
+    return existing.some(e => e.unit === payload.unit);
+  };
 
   //----------------------------------------------------
-const newDate = date.toISOString().split('T')[0];
-console.log("new date :" ,newDate)
+  const newDate = date.toISOString().split('T')[0];
+  console.log('new date :', newDate);
   const handleSubmit = async () => {
     const auth = getAuth();
     const userUid = auth.currentUser?.uid;
 
     if (!userUid) {
-      toast.show('User not logged in!', { type: 'danger' });
+      toast.show('User not logged in!', {
+        type: 'danger',
+        placement: 'top',
+        duration: 3000,
+        offset: 30,
+        animationType: 'slide-in',
+      });
       return;
     }
 
@@ -223,7 +291,7 @@ console.log("new date :" ,newDate)
     if (selectedItem?.name === 'Gold' || selectedItem?.name === 'Silver') {
       // Multiple units ke sath payload
       payload = {
-        date:newDate,
+        date: newDate,
         category: selectedCategory?.name,
         item: selectedItem?.name,
         quality: selectedQuality?.name || null,
@@ -238,7 +306,7 @@ console.log("new date :" ,newDate)
     } else {
       // Normal payload
       payload = {
-        date:newDate,
+        date: newDate,
 
         category: selectedCategory?.name,
         item: selectedItem?.name,
@@ -249,12 +317,30 @@ console.log("new date :" ,newDate)
         price: price,
       };
     }
-
+    // ---------------check duplicate-------------------------
     console.log('🔥 Payload:', payload);
+    const isDuplicate = await checkDuplicate(payload, userUid);
+    if (isDuplicate) {
+      toast.show('Data already exists !', {
+        type: 'warning',
+        placement: 'top',
+        duration: 4000,
+        offset: 30,
+        animationType: 'slide-in',
+      });
+      return;
+    }
+    // ----------------------------------------
 
     const result = await AddData(userUid, payload);
 
-    toast.show(result.message, { type: 'success' });
+    toast.show(result.message, {
+      type: 'success',
+      placement: 'top',
+      duration: 4000,
+      offset: 30,
+      animationType: 'slide-in',
+    });
 
     if (result.success) {
       setCategory(null);
@@ -278,8 +364,7 @@ console.log("new date :" ,newDate)
       <ScrollView style={styles.ScrollContainer}>
         <View style={styles.container}>
           {/* //---------------date picker-------------- */}
-          <View >
-            
+          <View>
             <DatePicker
               modal
               mode="date"
@@ -291,20 +376,23 @@ console.log("new date :" ,newDate)
               }}
               onCancel={() => setOpen(false)}
             />
-            <View style={{marginTop:10}}>
+            <View style={{ marginTop: 10 }}>
               <View style={styles.datePicker}>
                 <Text
                   style={{
                     fontSize: responsiveFontSize(2.3),
                     color: '#000',
                     textAlign: 'center',
-
                   }}
                 >
-                   {date.toLocaleDateString("en-GB")}
+                  {date.toLocaleDateString('en-GB')}
                 </Text>
                 <TouchableOpacity onPress={() => setOpen(true)}>
-                  <MaterialIcons name='calendar-month' size={24} color={"#daa520"} />
+                  <MaterialIcons
+                    name="calendar-month"
+                    size={24}
+                    color={'#daa520'}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -576,7 +664,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginLeft: 10,
   },
-   datePicker: {
+  datePicker: {
     width: responsiveWidth(90),
     height: 50,
     borderWidth: 1,
@@ -587,12 +675,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     color: '#000',
     elevation: 3,
-    justifyContent:'space-between',
-    alignItems:'center',
-    flexDirection:'row'
-
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexDirection: 'row',
   },
-     dateText: {
+  dateText: {
     fontSize: responsiveFontSize(2.5),
     color: '#fff',
     fontWeight: '700',

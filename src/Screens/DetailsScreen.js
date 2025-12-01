@@ -101,39 +101,23 @@ export const GoldPriceHistory = props => {
   };
 
   //--------------------filter by date----------------------------
-  // const searchBydate = () => {
-  //   setisLoading(true);
 
-  //   let startDate = new Date(fromDate.toISOString().split('T')[0]);
-  //   let endDate = new Date(toDate.toISOString().split('T')[0]);
-
-  //   const filteredByDate = marketData.filter(item => {
-  //     const itemDate = new Date(item.date);
-  //     return itemDate >= startDate && itemDate <= endDate;
-  //   });
-
-  //   setMarketData(filteredByDate);
-  //   console.log('Filtered data by date:', filteredByDate);
-  //   setisLoading(false);
-  // };
   const searchBydate = async () => {
     try {
       setisLoading(true);
-      let startDate = new Date(fromDate.toISOString().split('T')[0]);
-      let endDate = new Date(toDate.toISOString().split('T')[0]);
+      let startDateStr = fromDate.toISOString().split('T')[0]; // "2025-08-28"
+      let endDateStr = toDate.toISOString().split('T')[0];
 
       const snapShot = await firestore()
         .collection('MarketData')
         .where('category', '==', lowerCaseCategory)
         .where('item', '==', lowerCaseName)
-        .where('date', '>=', startDate)
-        .where('date', '<=', endDate)
+        .where('date', '>=', startDateStr)
+        .where('date', '<=', endDateStr)
         .get();
 
       const data = snapShot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      // const sortedData = data.sort(
-      //   (a, b) => new Date(b.date) - new Date(a.date),
-      // );
+
       setMarketData(data);
       setisLoading(false);
     } catch (error) {
@@ -253,7 +237,7 @@ export const GoldPriceHistory = props => {
           ))}
         </View>
       )}
-      {/* <View>
+      <View>
         <TouchableOpacity
           style={styles.editBtn}
           onPress={() => navigation.navigate('EditData', { id: item.id })}
@@ -261,7 +245,7 @@ export const GoldPriceHistory = props => {
           <MaterialIcons name="edit" size={20} color="#fff" />
           <Text style={styles.editBtnText}>Edit</Text>
         </TouchableOpacity>
-      </View> */}
+      </View>
     </View>
   );
 
@@ -578,7 +562,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
   },
-  displayNone:{
-    display:'none'
-  }
+  displayNone: {
+    display: 'none',
+  },
 });
