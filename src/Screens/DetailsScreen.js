@@ -24,6 +24,7 @@ import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import DatePicker from 'react-native-date-picker';
 import firestore from '@react-native-firebase/firestore';
+import { useToast } from 'react-native-toast-notifications';
 import { date } from 'yup';
 
 const data = [
@@ -51,6 +52,7 @@ const data = [
 ];
 
 export const GoldPriceHistory = props => {
+  const toast = useToast();
   //-----------------------------------------
   const [fromDate, setFromDate] = useState(new Date());
   const [fromDateOpen, setfromDateOpen] = useState(false);
@@ -65,10 +67,13 @@ export const GoldPriceHistory = props => {
 
   const lowerCaseName = name ? name.toLowerCase() : null;
   const lowerCaseCategory = category ? category.toLowerCase() : null;
+  console.log('lowercase Category :', lowerCaseCategory);
+  console.log('lowercase name :', lowerCaseName);
 
   const navigation = useNavigation();
   //-----------------------------------------
   const [marketData, setMarketData] = useState([]);
+  const [filteredData, setfilterData] = useState([]);
 
   const fetchData = async () => {
     const result = await getMarketData();
@@ -80,7 +85,7 @@ export const GoldPriceHistory = props => {
             i.item?.toLowerCase() === lowerCaseName &&
             i.category?.toLowerCase() === lowerCaseCategory,
         );
-        // console.log('filter data ', filtered);
+        console.log('filter data ', filtered);
         setMarketData(filtered);
         setisLoading(false);
       } else {
@@ -101,43 +106,51 @@ export const GoldPriceHistory = props => {
   };
 
   //--------------------filter by date----------------------------
+  const normalizeDate = d => new Date(d).toISOString().split('T')[0];
 
   const searchBydate = async () => {
     try {
       setisLoading(true);
-      let startDateStr = fromDate.toISOString().split('T')[0]; // "2025-08-28"
-      let endDateStr = toDate.toISOString().split('T')[0];
 
-      const snapShot = await firestore()
-        .collection('MarketData')
-        .where('category', '==', lowerCaseCategory)
-        .where('item', '==', lowerCaseName)
-        .where('date', '>=', startDateStr)
-        .where('date', '<=', endDateStr)
-        .get();
+      const startDate = normalizeDate(fromDate);
+      const endDate = normalizeDate(toDate);
+      console.log('start :', startDate);
+      console.log('end :', endDate);
 
-      const data = snapShot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const filtered = marketData.filter(item => {
+        if (!item.date) return false;
 
-      setMarketData(data);
-      setisLoading(false);
+        const d = new Date(item.date);
+        if (isNaN(d)) return false;
+
+        const itemDate = normalizeDate(d);
+        return itemDate >= startDate && itemDate <= endDate;
+      });
+      if (filtered.length === 0) {
+        toast.show('Data not found', {
+          type: 'warning',
+          placement: 'top',
+          duration: 3000,
+          offset: 30,
+          animationType: 'slide-in',
+        });
+      }
+      console.log('filtered Data : ', filtered);
+      setfilterData(filtered);
     } catch (error) {
       console.log('try catch error :', error);
+      setisLoading(false);
+    } finally {
       setisLoading(false);
     }
   };
 
   useFocusEffect(
     useCallback(() => {
-      setFromDate(new Date());
-      setToDate(new Date());
       fetchData();
-      return () => {
-        setFromDate(new Date());
-        setToDate(new Date());
-        fetchData();
-      };
     }, []),
   );
+
   //--------------------------------------------------------------
 
   const renderItem = ({ item }) => (
@@ -248,6 +261,10 @@ export const GoldPriceHistory = props => {
       </View>
     </View>
   );
+
+  // -----------check filter ctive or not--------------
+  const listData =
+    filteredData && filteredData.length > 0 ? filteredData : marketData;
 
   // -------SkeletonCard-----------
 
@@ -373,7 +390,7 @@ export const GoldPriceHistory = props => {
               </TouchableOpacity>
             </View>
             <FlatList
-              data={marketData}
+              data={listData}
               renderItem={renderItem}
               keyExtractor={item => item.id}
               contentContainerStyle={{ paddingBottom: 15 }}

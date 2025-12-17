@@ -26,6 +26,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import DatePicker from 'react-native-date-picker';
 import { Dropdown } from 'react-native-element-dropdown';
 import firestore from '@react-native-firebase/firestore';
+import { useToast } from 'react-native-toast-notifications';
 
 //=========================================================
 const data = {
@@ -148,6 +149,7 @@ const data = {
 //=========================================================
 
 export const History = props => {
+  const toast = useToast();
   //-----------------------------------------
   const [fromDate, setFromDate] = useState(new Date());
   const [fromDateOpen, setfromDateOpen] = useState(false);
@@ -232,15 +234,18 @@ export const History = props => {
           id: doc.id,
           ...doc.data(),
         }));
-        console.log('result :', result);
+       
+
         setMarketData(result);
       } else {
-        Alert.alert('Data not found');
+        toast.show('Data not found', {
+          type: 'warning',
+          placement: 'top',
+          duration: 3000,
+          offset: 30,
+          animationType: 'slide-in | zoom-in',
+        });
         console.log('No data found');
-        // setisLoading(false);
-
-        // setFromDate(null);
-        // setToDate(null);
 
         setMarketData([]);
         setisLoading(false);
@@ -331,7 +336,6 @@ export const History = props => {
 
       {/* Units array (agar available ho) */}
       {item.units?.map((u, index) => (
-
         <View style={u.price ? styles.row : styles.displayNone} key={index}>
           <Text style={styles.unit}>{u.unit}</Text>
           <Text style={styles.price}>Rs {formatNumber(u.price)}</Text>
@@ -413,6 +417,8 @@ export const History = props => {
                       onCancel={() => setfromDateOpen(false)}
                     />
                     <View style={{ marginTop: 10 }}>
+                    <Text style={styles.dateLabel}>From</Text>
+
                       <View style={styles.datePicker}>
                         <Text
                           style={{
@@ -436,6 +442,7 @@ export const History = props => {
                   {/* -----------to date---------------- */}
 
                   <View>
+
                     <DatePicker
                       modal
                       mode="date"
@@ -448,6 +455,8 @@ export const History = props => {
                       onCancel={() => setToDateOpen(false)}
                     />
                     <View style={{ marginTop: 10 }}>
+                    <Text  style={styles.dateLabel}>To</Text>
+
                       <View style={styles.datePicker}>
                         <Text
                           style={{
@@ -763,13 +772,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
   },
-  errorMsg:{
-    fontSize:responsiveFontSize(2.5),
-    color:"#000",
-    textAlign:'center',
-    marginTop:responsiveHeight(5)
+  errorMsg: {
+    fontSize: responsiveFontSize(2.5),
+    color: '#000',
+    textAlign: 'center',
+    marginTop: responsiveHeight(5),
   },
-  displayNone:{
-    display:'none'
+  displayNone: {
+    display: 'none',
+  },
+  dateLabel:{
+    color:"#000",
+    padding:2
   }
 });
