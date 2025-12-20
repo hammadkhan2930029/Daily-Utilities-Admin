@@ -7,6 +7,7 @@ import {
   Image,
   TouchableOpacity,
   ScrollView,
+  Button,
 } from 'react-native';
 import { CustomHeader } from '../components/CustomHeader';
 import {
@@ -74,6 +75,7 @@ export const GoldPriceHistory = props => {
   //-----------------------------------------
   const [marketData, setMarketData] = useState([]);
   const [filteredData, setfilterData] = useState([]);
+  // const [currencyLatest5, setcurrencyLatest5] = useState([]);
 
   const fetchData = async () => {
     const result = await getMarketData();
@@ -86,7 +88,12 @@ export const GoldPriceHistory = props => {
             i.category?.toLowerCase() === lowerCaseCategory,
         );
         console.log('filter data ', filtered);
+        //--------------------------
+        // const last5 = filtered.slice(-5);
+        // setcurrencyLatest5(last5);
+        //-------------------------
         setMarketData(filtered);
+
         setisLoading(false);
       } else {
         setMarketData(result.data);
@@ -263,8 +270,23 @@ export const GoldPriceHistory = props => {
   );
 
   // -----------check filter ctive or not--------------
-  const listData =
-    filteredData && filteredData.length > 0 ? filteredData : marketData;
+  // const listData =
+  //   filteredData && filteredData.length > 0 ? filteredData : marketData;
+  const listData = (() => {
+    // jab filter laga ho
+    if (filteredData && filteredData.length > 0) {
+      return filteredData;
+    }
+
+    // jab category currency ho aur filter na laga ho
+    if (lowerCaseCategory === 'currency') {
+      return marketData.slice(-5); // latest 5
+    }
+
+    // baqi sab cases
+    return marketData;
+  })();
+  console.log('list data ', listData);
 
   // -------SkeletonCard-----------
 
@@ -328,6 +350,7 @@ export const GoldPriceHistory = props => {
                     onCancel={() => setfromDateOpen(false)}
                   />
                   <View style={{ marginTop: 10 }}>
+                    <Text style={styles.dateLabel}>From</Text>
                     <View style={styles.datePicker}>
                       <Text
                         style={{
@@ -361,6 +384,7 @@ export const GoldPriceHistory = props => {
                     onCancel={() => setToDateOpen(false)}
                   />
                   <View style={{ marginTop: 10 }}>
+                    <Text style={styles.dateLabel}>To</Text>
                     <View style={styles.datePicker}>
                       <Text
                         style={{
@@ -389,12 +413,54 @@ export const GoldPriceHistory = props => {
                 <Text style={styles.btnText}>Search</Text>
               </TouchableOpacity>
             </View>
-            <FlatList
-              data={listData}
-              renderItem={renderItem}
-              keyExtractor={item => item.id}
-              contentContainerStyle={{ paddingBottom: 15 }}
-            />
+            {lowerCaseCategory === 'currency' ? (
+              <View style={styles.Currencycard}>
+                <View>
+                  <View style={styles.tableHeader}>
+                    <Text style={styles.headerText}>Date</Text>
+                    <Text style={styles.headerText}>Price</Text>
+                    <Text style={styles.headerText}>Action</Text>
+                  </View>
+                  {listData &&
+                    listData?.map((item, index) => {
+                      return (
+                        <View style={styles.tableData}>
+                          <Text style={[styles.tableText, styles.cell]}>
+                            {item.date}
+                          </Text>
+                          <Text style={[styles.tableText, styles.cell]}>
+                            {formatNumber(item.price)}
+                          </Text>
+                          <View style={styles.cell}>
+                            <TouchableOpacity
+                              style={styles.editBtn}
+                              onPress={() =>
+                                navigation.navigate('EditData', {
+                                  id: item.id,
+                                })
+                              }
+                            >
+                              <MaterialIcons
+                                name="edit"
+                                size={20}
+                                color="#fff"
+                              />
+                              <Text style={styles.editBtnText}>Edit</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      );
+                    })}
+                </View>
+              </View>
+            ) : (
+              <FlatList
+                data={listData}
+                renderItem={renderItem}
+                keyExtractor={item => item.id}
+                contentContainerStyle={{ paddingBottom: 15 }}
+              />
+            )}
           </ScrollView>
         )}
       </View>
@@ -406,8 +472,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f2f2f2',
-    paddingLeft: 15,
-    paddingRight: 15,
+    padding: 15,
+
     marginBottom: responsiveHeight(8),
   },
   cardContainer: {
@@ -464,10 +530,6 @@ const styles = StyleSheet.create({
   date: {
     fontSize: responsiveFontSize(2.4),
     color: '#8b7500',
-    // marginBottom: 8,
-    // borderBottomWidth: 1,
-    // borderBottomColor: '#daa520',
-    // paddingBottom: 4,
   },
   row: {
     flexDirection: 'row',
@@ -581,5 +643,67 @@ const styles = StyleSheet.create({
   },
   displayNone: {
     display: 'none',
+  },
+  // =======================================
+  Currencycard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 5,
+    borderWidth: 0.5,
+    borderColor: '#daa520',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    marginBottom: 12,
+  },
+  newHeding: {
+    fontSize: responsiveFontSize(3),
+    color: '#8b7500',
+    fontWeight: 600,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+
+    backgroundColor: '#d4af37',
+    padding: 10,
+    borderRadius: 10,
+  },
+  headerText: {
+    fontSize: responsiveFontSize(2.8),
+    color: '#fff',
+  },
+  tableData: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderColor: '#ddd',
+  },
+  tableText: {
+    color: '#000',
+    fontSize: responsiveFontSize(2.2),
+  },
+  cell: {
+    flex: 1,
+    padding: 10,
+    textAlign: 'center',
+    color: '#000',
+  },
+  editBtnNew: {
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
+    flexDirection: 'row',
+    backgroundColor: '#daa520',
+    padding: 5,
+    width: responsiveWidth(20),
+    borderRadius: 5,
+    alignSelf: 'flex-end',
+  },
+  dateLabel: {
+    color: '#000',
+    padding: 2,
   },
 });

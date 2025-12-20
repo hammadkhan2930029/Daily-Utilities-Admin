@@ -233,7 +233,7 @@ export default function HomeScreen({ route }) {
 
   // ----------------new renderitems----------------------------
   const renderItem = ({ item }) => (
-    <View>
+    <View  style={{ paddingTop: 15 }}>
       <TouchableOpacity
         style={styles.cardContainer}
         onPress={() =>
@@ -351,7 +351,7 @@ export default function HomeScreen({ route }) {
           ) : (
             <>
               {/* ----------------------------- */}
-              <View style={{ padding: 10 }}>
+              <View style={{padding: 10 }}>
                 {allGoldItems.length > 0 ? (
                   <TouchableOpacity
                     activeOpacity={0.3}
@@ -448,7 +448,7 @@ export default function HomeScreen({ route }) {
                       <Image source={AppImages.silver} style={styles.cardImg} />
 
                       <View style={styles.viewTop}>
-                        <Text style={styles.name}>Gold</Text>
+                        <Text style={styles.name}>Silver</Text>
                         <Text style={styles.date}>
                           Date: {allSilverItems[0].date}
                         </Text>

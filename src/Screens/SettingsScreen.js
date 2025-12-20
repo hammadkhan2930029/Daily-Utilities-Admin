@@ -135,6 +135,31 @@ const data = {
           name: 'AED',
           units: [{ id: 20811, name: '1 AED' }],
         },
+        {
+          id: 209,
+          name: 'AUD',
+          units: [{ id: 20911, name: '1 AUD' }],
+        },
+        {
+          id: 2010,
+          name: 'CAD',
+          units: [{ id: 201011, name: '1 CAD' }],
+        },
+        {
+          id: 2011,
+          name: 'JPY',
+          units: [{ id: 201111, name: '1 JPY' }],
+        },
+        {
+          id: 2012,
+          name: 'NZD',
+          units: [{ id: 201211, name: '1 NZD' }],
+        },
+        {
+          id: 2013,
+          name: 'SGD',
+          units: [{ id: 201311, name: '1 SGD' }],
+        },
       ],
     },
     {
@@ -168,7 +193,7 @@ const data = {
     },
   ],
 };
-
+// AUD /CAD / JPY /NZD /SGD
 export const SettingsScreen = () => {
   const [date, setDate] = useState(new Date());
   const [open, setOpen] = useState(false);
@@ -430,6 +455,9 @@ export const SettingsScreen = () => {
               <Text style={styles.label}>Select Item</Text>
               <Dropdown
                 style={styles.dropdown}
+                search={selectedCategory?.name === 'Currency'}
+                searchPlaceholder="Search..."
+                inputSearchStyle={styles.inputSearchStyle}
                 data={
                   selectedCategory?.items.map(i => ({
                     label: i.name,
@@ -684,5 +712,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     textTransform: 'uppercase',
+  },
+  inputSearchStyle: {
+    height: 40,
+    fontSize: 16,
+    borderRadius: 8,
+    color: '#000',
+    
   },
 });
